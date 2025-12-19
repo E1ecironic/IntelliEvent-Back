@@ -1,4 +1,4 @@
-package com.kevin.intellieventback.config;
+package com.kevin.basecore.common.utils;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.generator.FastAutoGenerator;
@@ -16,11 +16,10 @@ import com.baomidou.mybatisplus.generator.engine.FreemarkerTemplateEngine;
 import com.baomidou.mybatisplus.generator.keywords.MySqlKeyWordsHandler;
 import com.baomidou.mybatisplus.generator.model.ClassAnnotationAttributes;
 import com.baomidou.mybatisplus.generator.model.MapperMethod;
-import com.kevin.intellieventback.common.domin.BaseEntity;
+import com.kevin.basecore.common.domin.BaseEntity;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.cache.impl.PerpetualCache;
 import org.apache.ibatis.type.JdbcType;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -294,32 +293,74 @@ public class MybatisPlusGenerator {
      * 实际使用版
      * Spring Boot项目生成全部表示例，有调整可以自己修改
      */
-    public static void generator3() {
-        FastAutoGenerator.create(dbUrl,dbUser,dbPassword)
+    /**
+     * 实际使用版 - 生成包含Swagger注解的Controller
+     */
+    /**
+     * 实际使用版 - 生成包含Swagger2注解的Controller
+     */
+    public static void generator3(String dbName) {
+        FastAutoGenerator.create(dbUrl, dbUser, dbPassword)
                 .globalConfig(builder -> {
                     builder.outputDir((System.getProperty("user.dir")+"/src/main/java"))
                             .disableOpenDir()
-                            .author("baomidou")
-                            .enableSwagger();
+                            .author("kevin")
+                            .enableSwagger()  // 确保启用Swagger2
+                            .commentDate("yyyy-MM-dd");
                 })
                 .packageConfig(builder -> {
-                    builder.parent("com.baomidou")
-                            .pathInfo(Collections.singletonMap(OutputFile.xml, System.getProperty("user.dir")+"/src/main/resources/mapper"));
+                    builder.parent("com.kevin.intellieventback")
+                            .entity("entity")
+                            .service("service")
+                            .serviceImpl("service.impl")
+                            .mapper("mapper")
+                            .xml("mapper")
+                            .controller("controller");
                 })
                 .strategyConfig(builder -> {
-                    builder.enableSkipView()
-                            .entityBuilder().enableLombok(new ClassAnnotationAttributes("@Data","lombok.Data"))
-                            .mapperBuilder().mapperAnnotation(Mapper.class);
+                    builder
+                            // 全局策略
+                            .enableSkipView()
+                            .addInclude(dbName)
+
+                            // Entity策略
+                            .entityBuilder()
+                            .enableLombok()
+                            .enableTableFieldAnnotation()
+                            .enableFileOverride()
+                            .naming(NamingStrategy.underline_to_camel)
+                            .columnNaming(NamingStrategy.underline_to_camel)
+
+                            // Controller策略 - 添加Swagger注解
+                            .controllerBuilder()
+                            .enableRestStyle()
+                            .enableHyphenStyle()
+                            .enableFileOverride()
+                            .formatFileName("%sController")
+                            .template("templates/controller.java") // 指定自定义模板
+
+
+                            // Mapper策略
+                            .mapperBuilder()
+                            .mapperAnnotation(Mapper.class)
+                            .enableFileOverride()
+                            .formatMapperFileName("%sMapper")
+                            .formatXmlFileName("%sMapper")
+
+                            // Service策略
+                            .serviceBuilder()
+                            .formatServiceFileName("%sService")
+                            .formatServiceImplFileName("%sServiceImpl")
+                            .enableFileOverride();
                 })
                 .templateEngine(new FreemarkerTemplateEngine())
                 .execute();
-
     }
 
     public static void main(String[] args) {
         // generator1(); // 全部配置清单版
         // generator2(); // 常用配置清单版
-        generator3(); // 实际使用版
+        generator3("activities"); // 实际使用版
     }
 
 }

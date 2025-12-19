@@ -1,4 +1,4 @@
-package com.kevin.intellieventback.common.domin;
+package com.kevin.basecore.common.domin;
 
 import lombok.Data;
 
