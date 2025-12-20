@@ -305,7 +305,8 @@ public class MybatisPlusGenerator {
                     builder.outputDir((System.getProperty("user.dir")+"/src/main/java"))
                             .disableOpenDir()
                             .author("kevin")
-                            .enableSwagger()  // 确保启用Swagger2
+                            //.enableSwagger()  // 确保启用Swagger2
+                            .enableSpringdoc()
                             .commentDate("yyyy-MM-dd");
                 })
                 .packageConfig(builder -> {
@@ -314,7 +315,7 @@ public class MybatisPlusGenerator {
                             .service("service")
                             .serviceImpl("service.impl")
                             .mapper("mapper")
-                            .xml("mapper")
+                            .xml("mapper.xml")
                             .controller("controller");
                 })
                 .strategyConfig(builder -> {

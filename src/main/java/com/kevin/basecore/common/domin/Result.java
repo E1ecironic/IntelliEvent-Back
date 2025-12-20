@@ -1,22 +1,21 @@
 package com.kevin.basecore.common.domin;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.io.Serializable;
 
 @Data
-@ApiModel(description = "统一响应结果")
+@Schema(description = "统一响应结果")
 public class Result<T> implements Serializable {
 
-    @ApiModelProperty(value = "状态码", example = "200")
+    @Schema(description = "状态码", example = "200")
     private Integer code;
 
-    @ApiModelProperty(value = "提示信息", example = "操作成功")
+    @Schema(description = "提示信息", example = "操作成功")
     private String message;
 
-    @ApiModelProperty(value = "响应数据")
+    @Schema(description = "响应数据")
     private T data;
 
     public static <T> Result<T> success() {

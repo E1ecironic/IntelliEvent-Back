@@ -1,4 +1,4 @@
-package com.kevin.intellieventback;
+package com.kevin;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,9 +25,9 @@ public class IntelliEventBackApplication {
 
         String serverPort = env.getProperty("server.port", "8080");
         String contextPath = env.getProperty("server.servlet.context-path", "");
-        if (contextPath.isBlank()) {
+/*        if (contextPath.isBlank()) {
             contextPath = "/";
-        }
+        }*/
 
         log.info("\n" +
                         "=================================================================\n" +
@@ -38,12 +38,11 @@ public class IntelliEventBackApplication {
                         "外部访问:    {}://{}:{}{}\n" +
                         "\n" +
                         "API 文档:\n" +
-                        "Swagger UI:  {}://localhost:{}{}swagger-ui.html\n" +
+                        "Swagger UI:  {}://localhost:{}{}swagger-ui/index.html\n" +
                         "OpenAPI:     {}://localhost:{}{}api-docs\n" +
                         "\n" +
                         "配置信息:\n" +
                         "运行端口:    {}\n" +
-                        "运行环境:    {}\n" +
                         "=================================================================",
                 env.getProperty("spring.application.name", "IntelliEvent Backend"),
                 protocol,
@@ -59,7 +58,6 @@ public class IntelliEventBackApplication {
                 protocol,
                 serverPort,
                 contextPath,
-                serverPort,
-                env.getActiveProfiles());
+                serverPort);
     }
 }
