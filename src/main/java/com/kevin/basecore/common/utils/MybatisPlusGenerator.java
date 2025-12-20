@@ -361,7 +361,7 @@ public class MybatisPlusGenerator {
     public static void main(String[] args) {
         // generator1(); // 全部配置清单版
         // generator2(); // 常用配置清单版
-        generator3("activities"); // 实际使用版
+        generator3("organizations"); // 实际使用版
     }
 
 }

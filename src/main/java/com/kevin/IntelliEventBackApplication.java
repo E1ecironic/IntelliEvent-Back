@@ -38,7 +38,7 @@ public class IntelliEventBackApplication {
                         "外部访问:    {}://{}:{}{}\n" +
                         "\n" +
                         "API 文档:\n" +
-                        "Swagger UI:  {}://localhost:{}{}swagger-ui/index.html\n" +
+                        "Swagger UI:  {}://localhost:{}{}/swagger-ui/index.html\n" +
                         "OpenAPI:     {}://localhost:{}{}api-docs\n" +
                         "\n" +
                         "配置信息:\n" +
