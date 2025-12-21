@@ -1,5 +1,6 @@
 package com.kevin.intellieventback.service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.kevin.intellieventback.entity.Organizations;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -13,4 +14,9 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface OrganizationsService extends IService<Organizations> {
 
+    IPage<Organizations> pagelist(Organizations entity);
+
+    boolean saveOrganizations(Organizations entity);
+
+    boolean updateDataById(Organizations entity);
 }

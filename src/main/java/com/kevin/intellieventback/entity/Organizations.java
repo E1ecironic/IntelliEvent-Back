@@ -4,13 +4,16 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.kevin.basecore.common.domin.PageVO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * <p>
@@ -25,8 +28,9 @@ import java.time.LocalDateTime;
 @ToString
 @TableName("organizations")
 @Schema(name = "Organizations", description = "组织架构表")
-public class Organizations implements Serializable {
+public class Organizations extends PageVO implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     /**
@@ -72,11 +76,32 @@ public class Organizations implements Serializable {
     private Integer managerId;
 
     /**
+     * 组织负责人名称
+     */
+    @TableField("manager_name")
+    @Schema(description = "组织负责人名称")
+    private String managerName;
+
+    /**
      * 状态：1-正常 0-禁用
      */
     @TableField("status")
     @Schema(description = "状态：1-正常 0-禁用")
     private Byte status;
+
+    /**
+     * 联系电话
+     */
+    @TableField("connect_phone")
+    @Schema(description = "联系电话")
+    private String connectPhone;
+
+    /**
+     * 联系邮箱
+     */
+    @TableField("email")
+    @Schema(description = "联系邮箱")
+    private String email;
 
     /**
      * 创建时间
@@ -91,5 +116,12 @@ public class Organizations implements Serializable {
     @TableField("updated_at")
     @Schema(description = "更新时间")
     private LocalDateTime updatedAt;
+
+    /**
+     * 子组织结构
+     */
+    @TableField(exist = false)
+    @Schema(description = "子组织结构")
+    private List<Organizations> children;
 
 }

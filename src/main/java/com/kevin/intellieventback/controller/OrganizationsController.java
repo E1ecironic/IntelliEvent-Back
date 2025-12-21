@@ -41,14 +41,14 @@ public class OrganizationsController {
     @PostMapping
     @Operation(summary = "新增组织架构表")
     public Result<Boolean> save(@RequestBody Organizations entity) {
-        boolean result = organizationsService.save(entity);
+        boolean result = organizationsService.saveOrganizations(entity);
         return Result.success(result);
     }
 
     @PutMapping
     @Operation(summary = "修改组织架构表")
     public Result<Boolean> update(@RequestBody Organizations entity) {
-        boolean result = organizationsService.updateById(entity);
+        boolean result = organizationsService.updateDataById(entity);
         return Result.success(result);
     }
 
@@ -59,13 +59,10 @@ public class OrganizationsController {
         return Result.success(result);
     }
 
-    @GetMapping("/page")
+    @PostMapping("/page")
     @Operation(summary = "分页查询组织架构表")
-    public Result<IPage<Organizations>> page(
-            @Parameter(description = "页码", example = "1") @RequestParam(defaultValue = "1") Integer pageNum,
-            @Parameter(description = "每页大小", example = "10") @RequestParam(defaultValue = "10") Integer pageSize) {
-        IPage<Organizations> page = new Page<>(pageNum, pageSize);
-        organizationsService.page(page);
+    public Result<IPage<Organizations>> page(@RequestBody Organizations entity) {
+        IPage<Organizations> page = organizationsService.pagelist(entity);
         return Result.success(page);
     }
 }
