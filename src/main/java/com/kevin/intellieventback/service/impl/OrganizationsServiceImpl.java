@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.kevin.intellieventback.entity.Organizations;
+import com.kevin.intellieventback.domin.entity.Organizations;
 import com.kevin.intellieventback.mapper.OrganizationsMapper;
 import com.kevin.intellieventback.service.OrganizationsService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -39,7 +39,7 @@ public class OrganizationsServiceImpl extends ServiceImpl<OrganizationsMapper, O
             queryWrapper.like(Organizations::getName, entity.getName());
         }
         if (StringUtils.isNotBlank(entity.getCode())) {
-            queryWrapper.eq(Organizations::getCode, entity.getCode());
+            queryWrapper.like(Organizations::getCode, entity.getCode());
         }
         if (entity.getStatus() != null) {
             queryWrapper.eq(Organizations::getStatus, entity.getStatus());

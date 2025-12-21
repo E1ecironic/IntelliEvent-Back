@@ -76,10 +76,8 @@ public Result<Boolean> save(@RequestBody ${entity} entity) {
 
             @GetMapping("/page")
             @Operation(summary = "分页查询${table.comment!}")
-            public Result<IPage<${entity}>> page(
-            @Parameter(description = "页码", example = "1") @RequestParam(defaultValue = "1") Integer pageNum,
-            @Parameter(description = "每页大小", example = "10") @RequestParam(defaultValue = "10") Integer pageSize) {
-            IPage<${entity}> page = new Page<>(pageNum, pageSize);
+            public Result<IPage<${entity}>> page(@RequestBody ${entity} entity) {
+            IPage<${entity}> page = new Page<>(entity.getPageNum(), entity.getPageSize());
             ${table.serviceName?uncap_first}.page(page);
             return Result.success(page);
             }

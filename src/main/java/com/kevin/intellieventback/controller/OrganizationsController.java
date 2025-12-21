@@ -6,10 +6,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import com.kevin.intellieventback.entity.Organizations;
+import com.kevin.intellieventback.domin.entity.Organizations;
 import com.kevin.intellieventback.service.OrganizationsService;
 import com.kevin.basecore.common.domin.Result;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 
 import org.springframework.web.bind.annotation.RestController;

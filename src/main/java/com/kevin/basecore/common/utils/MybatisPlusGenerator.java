@@ -326,7 +326,8 @@ public class MybatisPlusGenerator {
 
                             // Entity策略
                             .entityBuilder()
-                            .enableLombok()
+                            .superClass(BaseEntity.class)
+                            .enableLombok(new ClassAnnotationAttributes("@Data","lombok.Data"))
                             .enableTableFieldAnnotation()
                             .enableFileOverride()
                             .naming(NamingStrategy.underline_to_camel)
@@ -361,7 +362,7 @@ public class MybatisPlusGenerator {
     public static void main(String[] args) {
         // generator1(); // 全部配置清单版
         // generator2(); // 常用配置清单版
-        generator3("organizations"); // 实际使用版
+        generator3("users"); // 实际使用版
     }
 
 }

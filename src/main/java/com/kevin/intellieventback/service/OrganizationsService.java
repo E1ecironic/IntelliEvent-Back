@@ -1,7 +1,7 @@
 package com.kevin.intellieventback.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.kevin.intellieventback.entity.Organizations;
+import com.kevin.intellieventback.domin.entity.Organizations;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 /**

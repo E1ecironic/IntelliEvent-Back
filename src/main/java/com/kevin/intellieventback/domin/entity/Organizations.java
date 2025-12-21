@@ -1,10 +1,10 @@
-package com.kevin.intellieventback.entity;
+package com.kevin.intellieventback.domin.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.kevin.basecore.common.domin.PageVO;
+import com.kevin.basecore.common.domin.BaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
@@ -28,7 +28,7 @@ import java.util.List;
 @ToString
 @TableName("organizations")
 @Schema(name = "Organizations", description = "组织架构表")
-public class Organizations extends PageVO implements Serializable {
+public class Organizations extends BaseEntity implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
