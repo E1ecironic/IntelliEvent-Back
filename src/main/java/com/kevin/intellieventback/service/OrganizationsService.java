@@ -19,4 +19,6 @@ public interface OrganizationsService extends IService<Organizations> {
     boolean saveOrganizations(Organizations entity);
 
     boolean updateDataById(Organizations entity);
+
+    boolean removeDataById(Long id);
 }

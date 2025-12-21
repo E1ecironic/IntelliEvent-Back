@@ -196,6 +196,51 @@ public class OrganizationsServiceImpl extends ServiceImpl<OrganizationsMapper, O
         return updateById(entity);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean removeDataById(Long id) {
+        // 验证组织是否存在
+        Organizations organization = getById(id);
+        if (organization == null) {
+            throw new RuntimeException("组织不存在");
+        }
+
+        // 获取所有子组织ID
+        List<Integer> allChildIds = getAllChildIds(id.intValue());
+
+        // 将要删除的ID列表
+        List<Integer> idsToDelete = new ArrayList<>();
+        idsToDelete.add(id.intValue());
+        idsToDelete.addAll(allChildIds);
+
+        // 批量删除
+        if (!CollectionUtils.isEmpty(idsToDelete)) {
+            // 可选：删除前检查是否有依赖数据（如用户关联等）
+            checkDependencies(idsToDelete);
+
+            // 执行删除
+            return removeByIds(idsToDelete);
+        }
+
+        return false;
+    }
+
+    /**
+     * 检查组织是否有依赖数据
+     */
+    //todo 删除用户表关联数据
+    private void checkDependencies(List<Integer> orgIds) {
+        // 示例：检查是否有用户关联到这些组织
+        // 这里需要根据你的实际业务来实现
+        // 比如：检查user表中有没有organizations_id在这些ID中的用户
+
+        // 示例代码：
+        // Integer userCount = userService.countUsersByOrgIds(orgIds);
+        // if (userCount > 0) {
+        //     throw new RuntimeException("存在关联用户，无法删除组织");
+        // }
+    }
+
     /**
      * 获取所有子组织ID（包括子组织、孙子组织等）
      * @param parentId 父组织ID

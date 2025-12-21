@@ -55,7 +55,7 @@ public class OrganizationsController {
     @DeleteMapping("/{id}")
     @Operation(summary = "删除组织架构表")
     public Result<Boolean> delete(@Parameter(description = "ID", required = true) @PathVariable Long id) {
-        boolean result = organizationsService.removeById(id);
+        boolean result = organizationsService.removeDataById(id);
         return Result.success(result);
     }
 
