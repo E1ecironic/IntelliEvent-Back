@@ -1,5 +1,6 @@
 package com.kevin.intellieventback.controller;
 
+import com.kevin.basecore.common.domin.PageResult;
 import com.kevin.intellieventback.domin.dto.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -38,7 +39,7 @@ public class UsersController {
     @PostMapping("/login")
     @Operation(summary = "用户登录")
     public Result<Map<String, Object>> login(@Valid @RequestBody UserLoginDTO loginDTO) {
-        Map<String, Object> result = usersService.login(loginDTO.getUsername(), loginDTO.getPassword());
+        Map<String, Object> result = usersService.login(loginDTO.getUserName(), loginDTO.getPassword());
         return Result.success(result);
     }
 
@@ -71,7 +72,7 @@ public class UsersController {
 
     @PutMapping("/status")
     @Operation(summary = "更新用户状态")
-    public Result<Boolean> updateStatus(@RequestParam Integer userId,
+    public Result<Boolean> updateStatus(@RequestParam String userId,
                                         @RequestParam Byte status) {
         boolean result = usersService.updateStatus(userId, status);
         return Result.success(result);
@@ -80,7 +81,7 @@ public class UsersController {
     @GetMapping("/check-username")
     @Operation(summary = "检查用户名是否存在")
     public Result<Boolean> checkUsernameExist(@RequestParam String username) {
-        boolean exists = usersService.checkUsernameExist(username);
+        boolean exists = usersService.checkUserNameExist(username);
         return Result.success(exists);
     }
 
@@ -93,7 +94,7 @@ public class UsersController {
 
     @GetMapping("/{id}")
     @Operation(summary = "根据ID查询用户")
-    public Result<Users> getById(@Parameter(description = "用户ID", required = true) @PathVariable Integer id) {
+    public Result<Users> getById(@Parameter(description = "用户ID", required = true) @PathVariable String id) {
         Users entity = usersService.getById(id);
         // 移除敏感信息
         if (entity != null) {
@@ -125,21 +126,21 @@ public class UsersController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除用户")
-    public Result<Boolean> delete(@Parameter(description = "用户ID", required = true) @PathVariable Integer id) {
+    public Result<Boolean> delete(@Parameter(description = "用户ID", required = true) @PathVariable String id) {
         boolean result = usersService.removeById(id);
         return Result.success(result);
     }
 
     @PostMapping("/page")
     @Operation(summary = "分页查询用户列表")
-    public Result<IPage<Users>> page(@RequestBody Users entity) {
+    public Result page(@RequestBody Users entity) {
         IPage<Users> page = usersService.pageList(entity);
         // 移除敏感信息
         page.getRecords().forEach(user -> {
             user.setPasswordHash(null);
             user.setSalt(null);
         });
-        return Result.success(page);
+        return Result.success(PageResult.returnResult(page.getTotal(), page.getRecords()));
     }
 
     /**
@@ -147,7 +148,7 @@ public class UsersController {
      */
     private Users convertRegisterDTOToEntity(UserRegisterDTO dto) {
         Users user = new Users();
-        user.setUsername(dto.getUsername());
+        user.setUserName(dto.getUserName());
         user.setEmail(dto.getEmail());
         user.setPasswordHash(dto.getPassword()); // Service 层会加密
         user.setRealName(dto.getRealName());

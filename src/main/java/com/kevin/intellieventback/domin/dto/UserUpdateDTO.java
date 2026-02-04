@@ -11,7 +11,7 @@ import jakarta.validation.constraints.Pattern;
 public class UserUpdateDTO {
 
     @Schema(description = "用户ID", required = true)
-    private Integer id;
+    private String id;
 
     @Email(message = "邮箱格式不正确")
     @Schema(description = "邮箱", example = "kevin@example.com")

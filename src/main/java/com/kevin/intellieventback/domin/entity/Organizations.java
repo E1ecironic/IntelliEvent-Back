@@ -37,8 +37,8 @@ public class Organizations extends BaseEntity implements Serializable {
      * 组织ID，主键
      */
     @Schema(description = "组织ID，主键")
-    @TableId(value = "id", type = IdType.AUTO)
-    private Integer id;
+    @TableId(value = "id", type = IdType.ASSIGN_ID)
+    private String id;
 
     /**
      * 组织名称
@@ -52,7 +52,7 @@ public class Organizations extends BaseEntity implements Serializable {
      */
     @TableField("parent_id")
     @Schema(description = "父组织ID，NULL表示顶级组织")
-    private Integer parentId;
+    private String parentId;
 
     /**
      * 组织编码
@@ -73,7 +73,7 @@ public class Organizations extends BaseEntity implements Serializable {
      */
     @TableField("manager_id")
     @Schema(description = "组织负责人用户ID")
-    private Integer managerId;
+    private String managerId;
 
     /**
      * 组织负责人名称

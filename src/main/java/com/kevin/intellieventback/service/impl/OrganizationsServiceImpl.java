@@ -86,7 +86,7 @@ public class OrganizationsServiceImpl extends ServiceImpl<OrganizationsMapper, O
      */
     private List<Organizations> getAllRelatedOrganizations(List<Organizations> topOrganizations, Organizations queryCondition) {
         // 收集所有顶级组织的ID
-        Set<Integer> allOrgIds = new HashSet<>();
+        Set<String> allOrgIds = new HashSet<>();
         Queue<Organizations> queue = new LinkedList<>(topOrganizations);
 
         while (!queue.isEmpty()) {
@@ -130,7 +130,7 @@ public class OrganizationsServiceImpl extends ServiceImpl<OrganizationsMapper, O
      */
     private List<Organizations> buildTreeStructure(List<Organizations> topOrganizations, List<Organizations> allOrganizations) {
         // 创建ID到组织的映射
-        Map<Integer, Organizations> orgMap = new HashMap<>();
+        Map<String, Organizations> orgMap = new HashMap<>();
         for (Organizations org : allOrganizations) {
             org.setChildren(new ArrayList<>()); // 初始化children列表
             orgMap.put(org.getId(), org);
@@ -152,7 +152,7 @@ public class OrganizationsServiceImpl extends ServiceImpl<OrganizationsMapper, O
     /**
      * 递归构建树
      */
-    private void buildTreeRecursive(Organizations parent, Map<Integer, Organizations> orgMap) {
+    private void buildTreeRecursive(Organizations parent, Map<String, Organizations> orgMap) {
         // 查找所有子组织
         List<Organizations> children = new ArrayList<>();
         for (Organizations org : orgMap.values()) {
@@ -183,7 +183,7 @@ public class OrganizationsServiceImpl extends ServiceImpl<OrganizationsMapper, O
             // 1. 先更新当前组织
             boolean updated = updateById(entity);
             // 2. 获取所有子组织ID并批量更新
-            List<Integer> allChildIds = getAllChildIds(entity.getId());
+            List<String> allChildIds = getAllChildIds(entity.getId());
             if (!CollectionUtils.isEmpty(allChildIds)) {
                 // 批量更新所有子组织的状态
                 lambdaUpdate()
@@ -198,7 +198,7 @@ public class OrganizationsServiceImpl extends ServiceImpl<OrganizationsMapper, O
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean removeDataById(Long id) {
+    public boolean removeDataById(String id) {
         // 验证组织是否存在
         Organizations organization = getById(id);
         if (organization == null) {
@@ -206,11 +206,11 @@ public class OrganizationsServiceImpl extends ServiceImpl<OrganizationsMapper, O
         }
 
         // 获取所有子组织ID
-        List<Integer> allChildIds = getAllChildIds(id.intValue());
+        List<String> allChildIds = getAllChildIds(id);
 
         // 将要删除的ID列表
-        List<Integer> idsToDelete = new ArrayList<>();
-        idsToDelete.add(id.intValue());
+        List<String> idsToDelete = new ArrayList<>();
+        idsToDelete.add(id);
         idsToDelete.addAll(allChildIds);
 
         // 批量删除
@@ -229,7 +229,7 @@ public class OrganizationsServiceImpl extends ServiceImpl<OrganizationsMapper, O
      * 检查组织是否有依赖数据
      */
     //todo 删除用户表关联数据
-    private void checkDependencies(List<Integer> orgIds) {
+    private void checkDependencies(List<String> orgIds) {
         // 示例：检查是否有用户关联到这些组织
         // 这里需要根据你的实际业务来实现
         // 比如：检查user表中有没有organizations_id在这些ID中的用户
@@ -242,32 +242,41 @@ public class OrganizationsServiceImpl extends ServiceImpl<OrganizationsMapper, O
     }
 
     /**
-     * 获取所有子组织ID（包括子组织、孙子组织等）
-     * @param parentId 父组织ID
-     * @return 所有子组织ID列表
+     * 获取指定组织的所有子组织ID（使用缓存优化）
      */
-    private List<Integer> getAllChildIds(Integer parentId) {
-        List<Integer> allChildIds = new ArrayList<>();
-        // 使用队列进行广度优先搜索
-        Queue<Integer> queue = new LinkedList<>();
+    private List<String> getAllChildIds(String parentId) {
+        if (StringUtils.isEmpty(parentId)) {
+            return new ArrayList<>();
+        }
+
+        List<String> allChildIds = new ArrayList<>();
+        Queue<String> queue = new LinkedList<>();
         queue.offer(parentId);
 
+        // 缓存已处理的组织ID，避免循环引用
+        Set<String> processedIds = new HashSet<>();
+        processedIds.add(parentId);
+
         while (!queue.isEmpty()) {
-            Integer currentId = queue.poll();
+            String currentId = queue.poll();
 
-            // 查询当前组织的直接子组织ID
-            List<Integer> childIds = lambdaQuery()
-                    .select(Organizations::getId)
+            // 查询当前组织的直接子组织
+            List<Organizations> childOrgs = lambdaQuery()
+                    .select(Organizations::getId, Organizations::getName)
                     .eq(Organizations::getParentId, currentId)
-                    .list()
-                    .stream()
-                    .map(Organizations::getId)
-                    .collect(Collectors.toList());
+                    .list();
 
-            if (!CollectionUtils.isEmpty(childIds)) {
-                allChildIds.addAll(childIds);
-                // 将子组织ID加入队列，继续查找下一级
-                queue.addAll(childIds);
+            if (!CollectionUtils.isEmpty(childOrgs)) {
+                for (Organizations child : childOrgs) {
+                    String childId = child.getId();
+
+                    // 避免重复处理
+                    if (!processedIds.contains(childId)) {
+                        allChildIds.add(childId);
+                        queue.offer(childId);
+                        processedIds.add(childId);
+                    }
+                }
             }
         }
 

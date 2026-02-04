@@ -38,7 +38,7 @@ public interface UsersService extends IService<Users> {
      * @param newPassword 新密码
      * @return 是否成功
      */
-    boolean changePassword(Integer userId, String oldPassword, String newPassword);
+    boolean changePassword(String userId, String oldPassword, String newPassword);
 
     /**
      * 重置密码
@@ -53,7 +53,7 @@ public interface UsersService extends IService<Users> {
      * @param status 状态
      * @return 是否成功
      */
-    boolean updateStatus(Integer userId, Byte status);
+    boolean updateStatus(String userId, Byte status);
 
     /**
      * 分页查询用户列表（带条件）
@@ -67,7 +67,7 @@ public interface UsersService extends IService<Users> {
      * @param username 用户名
      * @return 是否存在
      */
-    boolean checkUsernameExist(String username);
+    boolean checkUserNameExist(String username);
 
     /**
      * 检查邮箱是否已存在
@@ -81,5 +81,5 @@ public interface UsersService extends IService<Users> {
      * @param userId 用户ID
      * @return 是否成功
      */
-    boolean updateLastLoginTime(Integer userId);
+    boolean updateLastLoginTime(String userId);
 }

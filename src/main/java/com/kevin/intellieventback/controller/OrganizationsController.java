@@ -1,5 +1,6 @@
 package com.kevin.intellieventback.controller;
 
+import com.kevin.basecore.common.domin.PageResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,7 +33,7 @@ public class OrganizationsController {
 
     @GetMapping("/{id}")
     @Operation(summary = "根据ID查询组织架构表")
-    public Result<Organizations> getById(@Parameter(description = "ID", required = true) @PathVariable Long id) {
+    public Result<Organizations> getById(@Parameter(description = "ID", required = true) @PathVariable String id) {
         Organizations entity = organizationsService.getById(id);
         return Result.success(entity);
     }
@@ -53,15 +54,15 @@ public class OrganizationsController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除组织架构表")
-    public Result<Boolean> delete(@Parameter(description = "ID", required = true) @PathVariable Long id) {
+    public Result<Boolean> delete(@Parameter(description = "ID", required = true) @PathVariable String id) {
         boolean result = organizationsService.removeDataById(id);
         return Result.success(result);
     }
 
     @PostMapping("/page")
     @Operation(summary = "分页查询组织架构表")
-    public Result<IPage<Organizations>> page(@RequestBody Organizations entity) {
+    public Result page(@RequestBody Organizations entity) {
         IPage<Organizations> page = organizationsService.pagelist(entity);
-        return Result.success(page);
+        return Result.success(PageResult.returnResult(page.getTotal(), page.getRecords()));
     }
 }

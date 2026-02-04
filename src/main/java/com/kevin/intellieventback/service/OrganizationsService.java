@@ -20,5 +20,5 @@ public interface OrganizationsService extends IService<Organizations> {
 
     boolean updateDataById(Organizations entity);
 
-    boolean removeDataById(Long id);
+    boolean removeDataById(String id);
 }

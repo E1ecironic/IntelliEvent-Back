@@ -9,7 +9,9 @@ import com.kevin.intellieventback.domin.entity.Users;
 import com.kevin.intellieventback.mapper.UsersMapper;
 import com.kevin.intellieventback.service.UsersService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.DigestUtils;
@@ -31,14 +33,14 @@ import java.util.UUID;
 @Service
 public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements UsersService {
 
-    @Value("${user.default.password:s123456}")
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Value("${user.default.password:Aa123456}")
     private String defaultPassword;
 
     @Value("${user.default.avatar:}")
     private String defaultAvatar;
-
-    @Value("${user.password.salt-length:16}")
-    private Integer saltLength;
 
     @Value("${user.login.max-attempts:5}")
     private Integer maxLoginAttempts;
@@ -53,7 +55,7 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
 
         // 根据用户名或邮箱查询用户
         LambdaQueryWrapper<Users> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Users::getUsername, username).or().eq(Users::getEmail, username);
+        queryWrapper.eq(Users::getUserName, username).or().eq(Users::getEmail, username);
         Users user = getOne(queryWrapper);
 
         if (user == null) {
@@ -79,8 +81,7 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         }
 
         // 验证密码
-        String encryptedPassword = encryptPassword(password, user.getSalt());
-        if (!encryptedPassword.equals(user.getPasswordHash())) {
+        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             log.warn("登录失败：密码错误 - userId: {}", user.getId());
             result.put("success", false);
             result.put("message", "用户名或密码错误");
@@ -91,7 +92,7 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         user.setLastLoginAt(LocalDateTime.now());
         updateById(user);
 
-        log.info("用户登录成功 - userId: {}, username: {}", user.getId(), user.getUsername());
+        log.info("用户登录成功 - userId: {}, username: {}", user.getId(), user.getUserName());
 
         // 移除敏感信息
         user.setPasswordHash(null);
@@ -107,11 +108,11 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean register(Users user) {
-        log.info("开始用户注册 - username: {}, email: {}", user.getUsername(), user.getEmail());
+        log.info("开始用户注册 - userName: {}, email: {}", user.getUserName(), user.getEmail());
 
         // 检查用户名是否已存在
-        if (checkUsernameExist(user.getUsername())) {
-            log.error("用户注册失败：用户名已存在 - username: {}", user.getUsername());
+        if (checkUserNameExist(user.getUserName())) {
+            log.error("用户注册失败：用户名已存在 - userName: {}", user.getUserName());
             throw new RuntimeException("用户名已存在");
         }
 
@@ -121,16 +122,33 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
             throw new RuntimeException("邮箱已存在");
         }
 
-        // 生成盐值
-        String salt = generateSalt();
-        user.setSalt(salt);
-
-        // 加密密码
+        String passwordToCheck;
         if (StringUtils.isBlank(user.getPasswordHash())) {
-            user.setPasswordHash(encryptPassword(defaultPassword, salt));
-            log.debug("使用默认密码 - username: {}", user.getUsername());
+            // 如果用户没有提供密码，使用默认密码
+            passwordToCheck = defaultPassword;
         } else {
-            user.setPasswordHash(encryptPassword(user.getPasswordHash(), salt));
+            // 如果用户提供了密码，校验格式
+            passwordToCheck = user.getPasswordHash();
+        }
+
+        // 校验密码格式（如果不为空才校验）
+        if (StringUtils.isNotBlank(passwordToCheck)) {
+            if (!isValidPasswordFormat(passwordToCheck)) {
+                log.error("用户注册失败：密码格式不符合要求 - userName: {}", user.getUserName());
+                throw new RuntimeException("密码必须包含大小写字母和数字，长度8-20位");
+            }
+        }
+
+        // 生成盐值（BCrypt 内部自带盐值，不需要额外设置 salt 字段）
+        // 但如果数据库设计了该字段，我们可以填个随机值或空
+        user.setSalt(UUID.randomUUID().toString().substring(0, 16));
+
+        // 使用 BCrypt 加密密码
+        if (StringUtils.isBlank(user.getPasswordHash())) {
+            user.setPasswordHash(passwordEncoder.encode(defaultPassword));
+            log.debug("使用默认密码 - userName: {}", user.getUserName());
+        } else {
+            user.setPasswordHash(passwordEncoder.encode(user.getPasswordHash()));
         }
 
         // 设置默认头像
@@ -154,9 +172,9 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
 
         boolean success = save(user);
         if (success) {
-            log.info("用户注册成功 - userId: {}, username: {}", user.getId(), user.getUsername());
+            log.info("用户注册成功 - userId: {}, UserName: {}", user.getId(), user.getUserName());
         } else {
-            log.error("用户注册失败 - username: {}", user.getUsername());
+            log.error("用户注册失败 - UserName: {}", user.getUserName());
         }
 
         return success;
@@ -164,7 +182,7 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean changePassword(Integer userId, String oldPassword, String newPassword) {
+    public boolean changePassword(String userId, String oldPassword, String newPassword) {
         log.info("用户修改密码 - userId: {}", userId);
 
         Users user = getById(userId);
@@ -174,14 +192,13 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         }
 
         // 验证旧密码
-        String encryptedOldPassword = encryptPassword(oldPassword, user.getSalt());
-        if (!encryptedOldPassword.equals(user.getPasswordHash())) {
+        if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
             log.error("修改密码失败：旧密码错误 - userId: {}", userId);
             throw new RuntimeException("旧密码错误");
         }
 
         // 更新密码
-        user.setPasswordHash(encryptPassword(newPassword, user.getSalt()));
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
         user.setUpdatedAt(LocalDateTime.now());
 
         boolean success = updateById(user);
@@ -210,9 +227,7 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
 
         // 生成新密码
         String newPassword = generateRandomPassword();
-        String encryptedPassword = encryptPassword(newPassword, user.getSalt());
-
-        user.setPasswordHash(encryptedPassword);
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
         user.setUpdatedAt(LocalDateTime.now());
 
         boolean result = updateById(user);
@@ -231,7 +246,7 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean updateStatus(Integer userId, Byte status) {
+    public boolean updateStatus(String userId, Byte status) {
         log.info("更新用户状态 - userId: {}, status: {}", userId, status);
 
         Users user = getById(userId);
@@ -263,11 +278,11 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         LambdaQueryWrapper<Users> queryWrapper = new LambdaQueryWrapper<>();
 
         log.debug("用户分页查询 - pageNum: {}, pageSize: {}, username: {}, realName: {}",
-                user.getPageNum(), user.getPageSize(), user.getUsername(), user.getRealName());
+                user.getPageNum(), user.getPageSize(), user.getUserName(), user.getRealName());
 
         // 根据条件查询
-        if (StringUtils.isNotBlank(user.getUsername())) {
-            queryWrapper.like(Users::getUsername, user.getUsername());
+        if (StringUtils.isNotBlank(user.getUserName())) {
+            queryWrapper.like(Users::getUserName, user.getUserName());
         }
         if (StringUtils.isNotBlank(user.getEmail())) {
             queryWrapper.like(Users::getEmail, user.getEmail());
@@ -292,9 +307,9 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
     }
 
     @Override
-    public boolean checkUsernameExist(String username) {
+    public boolean checkUserNameExist(String username) {
         LambdaQueryWrapper<Users> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Users::getUsername, username);
+        queryWrapper.eq(Users::getUserName, username);
         boolean exists = count(queryWrapper) > 0;
         log.debug("检查用户名是否存在 - username: {}, exists: {}", username, exists);
         return exists;
@@ -310,33 +325,13 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
     }
 
     @Override
-    public boolean updateLastLoginTime(Integer userId) {
-        Users user = getById(userId);
-        if (user == null) {
-            log.warn("更新最后登录时间失败：用户不存在 - userId: {}", userId);
-            return false;
-        }
-
+    @Transactional(rollbackFor = Exception.class)
+    public boolean updateLastLoginTime(String userId) {
+        log.info("更新最后登录时间 - userId: {}", userId);
+        Users user = new Users();
+        user.setId(userId);
         user.setLastLoginAt(LocalDateTime.now());
-        boolean success = updateById(user);
-        log.debug("更新最后登录时间 - userId: {}, success: {}", userId, success);
-        return success;
-    }
-
-    /**
-     * 加密密码
-     */
-    private String encryptPassword(String password, String salt) {
-        String str = password + salt;
-        return DigestUtils.md5DigestAsHex(str.getBytes());
-    }
-
-    /**
-     * 生成盐值
-     */
-    private String generateSalt() {
-        String uuid = UUID.randomUUID().toString().replace("-", "");
-        return uuid.substring(0, Math.min(saltLength, uuid.length()));
+        return updateById(user);
     }
 
     /**
@@ -357,5 +352,39 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
             case 2: return "待激活";
             default: return "未知";
         }
+    }
+
+
+    /**
+     * 校验密码格式
+     * @param password 明文密码
+     * @return 是否符合格式要求
+     */
+    private boolean isValidPasswordFormat(String password) {
+        if (StringUtils.isBlank(password)) {
+            return false; // 空密码不允许
+        }
+
+        // 长度校验
+        if (password.length() < 8 || password.length() > 20) {
+            return false;
+        }
+
+        // 包含大小写字母和数字的校验
+        boolean hasLowercase = false;
+        boolean hasUppercase = false;
+        boolean hasDigit = false;
+
+        for (char c : password.toCharArray()) {
+            if (Character.isLowerCase(c)) {
+                hasLowercase = true;
+            } else if (Character.isUpperCase(c)) {
+                hasUppercase = true;
+            } else if (Character.isDigit(c)) {
+                hasDigit = true;
+            }
+        }
+
+        return hasLowercase && hasUppercase && hasDigit;
     }
 }
