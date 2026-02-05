@@ -38,4 +38,7 @@ public class UserRegisterDTO {
 
     @Schema(description = "职位", example = "软件工程师")
     private String position;
+
+    @Schema(description = "组织ID", example = "2019234348271816705")
+    private String organizationId;
 }

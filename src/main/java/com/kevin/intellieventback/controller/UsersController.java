@@ -14,6 +14,8 @@ import com.kevin.intellieventback.domin.entity.Users;
 import com.kevin.intellieventback.service.UsersService;
 import com.kevin.basecore.common.domin.Result;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import org.springframework.beans.BeanUtils;
 
 import jakarta.validation.Valid;
 import java.util.Map;
@@ -47,7 +49,9 @@ public class UsersController {
     @Operation(summary = "用户注册")
     public Result<Boolean> register(@Valid @RequestBody UserRegisterDTO registerDTO) {
         // 将 DTO 转换为 Entity
-        Users user = convertRegisterDTOToEntity(registerDTO);
+        Users user = new Users();
+        BeanUtils.copyProperties(registerDTO, user);
+        user.setPasswordHash(registerDTO.getPassword()); // 特殊处理密码字段名不一致
         boolean result = usersService.register(user);
         return Result.success(result);
     }
@@ -107,7 +111,9 @@ public class UsersController {
     @PostMapping
     @Operation(summary = "新增用户（管理员）")
     public Result<Boolean> save(@Valid @RequestBody UserRegisterDTO registerDTO) {
-        Users user = convertRegisterDTOToEntity(registerDTO);
+        Users user = new Users();
+        BeanUtils.copyProperties(registerDTO, user);
+        user.setPasswordHash(registerDTO.getPassword());
         boolean result = usersService.register(user);
         return Result.success(result);
     }
@@ -116,11 +122,18 @@ public class UsersController {
     @Operation(summary = "修改用户信息")
     public Result<Boolean> update(@Valid @RequestBody UserUpdateDTO updateDTO) {
         // 将 DTO 转换为 Entity
-        Users user = convertUpdateDTOToEntity(updateDTO);
+        Users user = new Users();
+        BeanUtils.copyProperties(updateDTO, user);
         // 防止更新密码和盐值
         user.setPasswordHash(null);
         user.setSalt(null);
         boolean result = usersService.updateById(user);
+        
+        // 更新组织关系
+        if (result && StringUtils.isNotBlank(user.getOrganizationId())) {
+            usersService.updateUserOrganization(user.getId(), user.getOrganizationId());
+        }
+        
         return Result.success(result);
     }
 
@@ -141,34 +154,5 @@ public class UsersController {
             user.setSalt(null);
         });
         return Result.success(PageResult.returnResult(page.getTotal(), page.getRecords()));
-    }
-
-    /**
-     * 将注册 DTO 转换为 Entity
-     */
-    private Users convertRegisterDTOToEntity(UserRegisterDTO dto) {
-        Users user = new Users();
-        user.setUserName(dto.getUserName());
-        user.setEmail(dto.getEmail());
-        user.setPasswordHash(dto.getPassword()); // Service 层会加密
-        user.setRealName(dto.getRealName());
-        user.setPhone(dto.getPhone());
-        user.setPosition(dto.getPosition());
-        return user;
-    }
-
-    /**
-     * 将更新 DTO 转换为 Entity
-     */
-    private Users convertUpdateDTOToEntity(UserUpdateDTO dto) {
-        Users user = new Users();
-        user.setId(dto.getId());
-        user.setEmail(dto.getEmail());
-        user.setRealName(dto.getRealName());
-        user.setPhone(dto.getPhone());
-        user.setPosition(dto.getPosition());
-        user.setAvatarUrl(dto.getAvatarUrl());
-        user.setSettings(dto.getSettings());
-        return user;
     }
 }

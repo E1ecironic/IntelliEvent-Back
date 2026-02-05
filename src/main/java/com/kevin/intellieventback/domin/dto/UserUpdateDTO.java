@@ -32,4 +32,7 @@ public class UserUpdateDTO {
 
     @Schema(description = "个性化设置（JSON格式）", example = "{\"theme\":\"dark\",\"language\":\"en\"}")
     private String settings;
+
+    @Schema(description = "组织ID", example = "2019234348271816705")
+    private String organizationId;
 }

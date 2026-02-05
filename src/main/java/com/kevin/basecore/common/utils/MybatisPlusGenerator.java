@@ -88,14 +88,14 @@ public class MybatisPlusGenerator {
                 })
                 // 3、包配置
                 .packageConfig(builder -> {
-                    builder.parent("com.baomidou") // 设置父包名（默认值）
-                            .moduleName("") // 设置模块名（默认值），就是父包名的子模块名称，适用于单体多模块项目
-                            .entity("entity") // 设置 Entity 包名（默认值）
-                            .service("service") // 设置 Service 包名（默认值）
-                            .serviceImpl("service.impl") // 置 Service Impl 包名（默认值）设
-                            .mapper("mapper") // 设置 Mapper 包名（默认值）
-                            .xml("mapper.xml") // 设置 Mapper XML 包名（默认值）
-                            .controller("controller") // 设置 Controller 包名（默认值）
+                    builder.parent("com.kevin.intellieventback") // 设置父包名
+                            .moduleName("") // 设置模块名
+                            .entity("domin.entity") // 设置 Entity 包名
+                            .service("service") // 设置 Service 包名
+                            .serviceImpl("service.impl") // 置 Service Impl 包名
+                            .mapper("mapper") // 设置 Mapper 包名
+                            .xml("mapper.xml") // 设置 Mapper XML 包名
+                            .controller("controller") // 设置 Controller 包名
                             .pathInfo(new HashMap<>()) // 用一个map直接设置各个包的路径，主要用来修改mapper.xml路径，否则默认在java/mapper的目录下，例：Collections.singletonMap(OutputFile.mapperXml, "/path/to/xml")
                             .joinPackage(""); // 连接父子包名，整体目录结构为 outputDir.parent.moduleName.subPackage，适用于微服务项目
                 })
@@ -131,7 +131,6 @@ public class MybatisPlusGenerator {
                             .enableLombok() // 开启lombok模型（默认 false），默认添加Getter、Setter、ToString
                             .enableLombok(new ClassAnnotationAttributes("@Data","lombok.Data")) // 开启lombok模型（默认 false），会把注解属性都加入进去，无论是否启用GlobalConfig的isKotlin()，同时get,set,toString都将不会生成，需自行控制添加
                             .enableRemoveIsPrefix() // 开启Boolean类型字段移除is前缀（默认 false）
-                            .enableTableFieldAnnotation() // 开启生成实体时生成字段注解（默认 false）
                             .enableActiveRecord() // 开启 ActiveRecord 模式（默认 false）
                             .versionColumnName("version") // 设置乐观锁字段名（数据库字段），versionColumnName 与 versionPropertyName 二选一即可
                             .versionPropertyName("version") // 设置乐观锁属性名（实体），versionColumnName 与 versionPropertyName 二选一即可
@@ -142,7 +141,7 @@ public class MybatisPlusGenerator {
                             .addSuperEntityColumns() // 添加父类公共字段，支持可变参数和List列表
                             .addIgnoreColumns() // 添加忽略字段，支持可变参数和List列表
                             .addTableFills() // 添加表字段填充，支持可变参数和List列表
-                            .idType(IdType.AUTO) // 设置全局主键类型（默认值 自增）
+                            .idType(IdType.ASSIGN_ID) // 设置全局主键类型（雪花算法）
                             .convertFileName(entityName -> entityName) // 自定义转换输出文件名称
                             .formatFileName("format") // 设置格式化文件名称
                             .enableFileOverride() // 开启覆盖已有文件（默认 false），针对 Entity
@@ -235,8 +234,9 @@ public class MybatisPlusGenerator {
                 })
                 // 3、包配置
                 .packageConfig(builder -> {
-                    builder.parent("com.baomidou") // 设置父包名（默认值）
-                            .moduleName("") // 设置模块名（默认值），就是父包名的子模块名称，适用于单体多模块项目
+                    builder.parent("com.kevin.intellieventback") // 设置父包名
+                            .moduleName("") // 设置模块名
+                            .entity("domin.entity") // 设置 Entity 包名
                             .pathInfo(Collections.singletonMap(OutputFile.xml, System.getProperty("user.dir")+"/src/main/resources/mapper")) // 用一个map直接设置各个包的路径，主要用来修改mapper.xml路径，否则默认在java/mapper的目录下，例：Collections.singletonMap(OutputFile.mapperXml, "/path/to/xml")
                             .joinPackage(""); // 连接父子包名，整体目录结构为 outputDir.parent.moduleName.subPackage，适用于微服务项目
                 })
@@ -253,7 +253,6 @@ public class MybatisPlusGenerator {
                             .disableSerialVersionUID() // 禁用生成 serialVersionUID（默认 true）
                             .enableChainModel() // 开启链式模型（默认 false）
                             .enableLombok(new ClassAnnotationAttributes("@Data","lombok.Data")) // 开启lombok模型（默认 false），会把注解属性都加入进去，无论是否启用GlobalConfig的isKotlin()，同时get,set,toString都将不会生成，需自行控制添加
-                            .enableTableFieldAnnotation() // 开启生成实体时生成字段注解（默认 false）
                             .enableActiveRecord() // 开启 ActiveRecord 模式（默认 false）
                             .versionColumnName("version") // 设置乐观锁字段名（数据库字段），versionColumnName 与 versionPropertyName 二选一即可
                             .logicDeleteColumnName("deleted") // 设置逻辑删除字段名（数据库字段），logicDeleteColumnName 与 logicDeletePropertyName 二选一即可
@@ -311,7 +310,7 @@ public class MybatisPlusGenerator {
                 })
                 .packageConfig(builder -> {
                     builder.parent("com.kevin.intellieventback")
-                            .entity("entity")
+                            .entity("domin.entity")
                             .service("service")
                             .serviceImpl("service.impl")
                             .mapper("mapper")
@@ -326,9 +325,9 @@ public class MybatisPlusGenerator {
 
                             // Entity策略
                             .entityBuilder()
+                            .idType(IdType.ASSIGN_ID)
                             .superClass(BaseEntity.class)
                             .enableLombok(new ClassAnnotationAttributes("@Data","lombok.Data"))
-                            .enableTableFieldAnnotation()
                             .enableFileOverride()
                             .naming(NamingStrategy.underline_to_camel)
                             .columnNaming(NamingStrategy.underline_to_camel)
@@ -362,7 +361,7 @@ public class MybatisPlusGenerator {
     public static void main(String[] args) {
         // generator1(); // 全部配置清单版
         // generator2(); // 常用配置清单版
-        generator3("users"); // 实际使用版
+        generator3("user_organization"); // 实际使用版
     }
 
 }

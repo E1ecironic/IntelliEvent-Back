@@ -114,4 +114,11 @@ public class Users extends BaseEntity implements Serializable {
      */
     @Schema(description = "密码盐值")
     private String salt;
+
+    /**
+     * 组织ID（非持久化字段）
+     */
+    @TableField(exist = false)
+    @Schema(description = "组织ID")
+    private String organizationId;
 }

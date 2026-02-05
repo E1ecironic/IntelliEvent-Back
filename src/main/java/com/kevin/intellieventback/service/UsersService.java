@@ -82,4 +82,12 @@ public interface UsersService extends IService<Users> {
      * @return 是否成功
      */
     boolean updateLastLoginTime(String userId);
+
+    /**
+     * 更新用户组织关系
+     * @param userId 用户ID
+     * @param organizationId 组织ID
+     * @return 是否成功
+     */
+    boolean updateUserOrganization(String userId, String organizationId);
 }

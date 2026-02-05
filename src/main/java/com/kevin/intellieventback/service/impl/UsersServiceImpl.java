@@ -6,8 +6,10 @@ import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.kevin.intellieventback.domin.entity.Users;
+import com.kevin.intellieventback.domin.entity.UserOrganization;
 import com.kevin.intellieventback.mapper.UsersMapper;
 import com.kevin.intellieventback.service.UsersService;
+import com.kevin.intellieventback.service.UserOrganizationService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,6 +37,9 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private UserOrganizationService userOrganizationService;
 
     @Value("${user.default.password:Aa123456}")
     private String defaultPassword;
@@ -108,7 +113,8 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean register(Users user) {
-        log.info("开始用户注册 - userName: {}, email: {}", user.getUserName(), user.getEmail());
+        log.info("开始用户注册 - userName: {}, email: {}, organizationId: {}",
+                user.getUserName(), user.getEmail(), user.getOrganizationId());
 
         // 检查用户名是否已存在
         if (checkUserNameExist(user.getUserName())) {
@@ -140,13 +146,11 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         }
 
         // 生成盐值（BCrypt 内部自带盐值，不需要额外设置 salt 字段）
-        // 但如果数据库设计了该字段，我们可以填个随机值或空
         user.setSalt(UUID.randomUUID().toString().substring(0, 16));
 
         // 使用 BCrypt 加密密码
         if (StringUtils.isBlank(user.getPasswordHash())) {
             user.setPasswordHash(passwordEncoder.encode(defaultPassword));
-            log.debug("使用默认密码 - userName: {}", user.getUserName());
         } else {
             user.setPasswordHash(passwordEncoder.encode(user.getPasswordHash()));
         }
@@ -171,10 +175,23 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         }
 
         boolean success = save(user);
+
+        // 保存组织关联关系
+        if (success && StringUtils.isNotBlank(user.getOrganizationId())) {
+            UserOrganization userOrg = new UserOrganization();
+            userOrg.setUserId(user.getId());
+            userOrg.setOrganizationId(user.getOrganizationId());
+            userOrg.setRoleType((byte) 1); // 默认普通成员
+            userOrg.setIsPrimary(true);
+            userOrg.setStatus((byte) 1);
+            userOrg.setCreatedAt(LocalDateTime.now());
+            userOrg.setUpdatedAt(LocalDateTime.now());
+            userOrganizationService.save(userOrg);
+            log.info("关联用户组织成功 - userId: {}, organizationId: {}", user.getId(), user.getOrganizationId());
+        }
+
         if (success) {
             log.info("用户注册成功 - userId: {}, UserName: {}", user.getId(), user.getUserName());
-        } else {
-            log.error("用户注册失败 - UserName: {}", user.getUserName());
         }
 
         return success;
@@ -275,32 +292,10 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
     @Override
     public IPage<Users> pageList(Users user) {
         Page<Users> page = new Page<>(user.getPageNum(), user.getPageSize());
-        LambdaQueryWrapper<Users> queryWrapper = new LambdaQueryWrapper<>();
-
-        log.debug("用户分页查询 - pageNum: {}, pageSize: {}, username: {}, realName: {}",
+        log.debug("用户分页查询(含组织ID) - pageNum: {}, pageSize: {}, username: {}, realName: {}",
                 user.getPageNum(), user.getPageSize(), user.getUserName(), user.getRealName());
 
-        // 根据条件查询
-        if (StringUtils.isNotBlank(user.getUserName())) {
-            queryWrapper.like(Users::getUserName, user.getUserName());
-        }
-        if (StringUtils.isNotBlank(user.getEmail())) {
-            queryWrapper.like(Users::getEmail, user.getEmail());
-        }
-        if (StringUtils.isNotBlank(user.getRealName())) {
-            queryWrapper.like(Users::getRealName, user.getRealName());
-        }
-        if (StringUtils.isNotBlank(user.getPhone())) {
-            queryWrapper.like(Users::getPhone, user.getPhone());
-        }
-        if (StringUtils.isNotBlank(user.getPosition())) {
-            queryWrapper.like(Users::getPosition, user.getPosition());
-        }
-        if (user.getStatus() != null) {
-            queryWrapper.eq(Users::getStatus, user.getStatus());
-        }
-
-        IPage<Users> result = page(page, queryWrapper);
+        IPage<Users> result = baseMapper.selectUserPageWithOrg(page, user);
         log.debug("用户分页查询完成 - 总数: {}", result.getTotal());
 
         return result;
@@ -332,6 +327,44 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         user.setId(userId);
         user.setLastLoginAt(LocalDateTime.now());
         return updateById(user);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean updateUserOrganization(String userId, String organizationId) {
+        log.info("更新用户组织关系 - userId: {}, organizationId: {}", userId, organizationId);
+        
+        if (StringUtils.isBlank(organizationId)) {
+            return true;
+        }
+
+        // 1. 查询现有的主组织关系
+        LambdaQueryWrapper<UserOrganization> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(UserOrganization::getUserId, userId)
+                    .eq(UserOrganization::getIsPrimary, true);
+        UserOrganization existing = userOrganizationService.getOne(queryWrapper);
+
+        if (existing != null) {
+            // 如果组织 ID 没变，直接返回
+            if (organizationId.equals(existing.getOrganizationId())) {
+                return true;
+            }
+            // 2. 更新现有的主组织关系
+            existing.setOrganizationId(organizationId);
+            existing.setUpdatedAt(LocalDateTime.now());
+            return userOrganizationService.updateById(existing);
+        } else {
+            // 3. 不存在则新增
+            UserOrganization userOrg = new UserOrganization();
+            userOrg.setUserId(userId);
+            userOrg.setOrganizationId(organizationId);
+            userOrg.setRoleType((byte) 1);
+            userOrg.setIsPrimary(true);
+            userOrg.setStatus((byte) 1);
+            userOrg.setCreatedAt(LocalDateTime.now());
+            userOrg.setUpdatedAt(LocalDateTime.now());
+            return userOrganizationService.save(userOrg);
+        }
     }
 
     /**

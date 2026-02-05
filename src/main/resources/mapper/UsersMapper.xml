@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kevin.intellieventback.mapper.UsersMapper">
+
+    <select id="selectUserPageWithOrg" resultType="com.kevin.intellieventback.domin.entity.Users">
+        SELECT u.*, uo.organization_id as organizationId
+        FROM users u
+        LEFT JOIN user_organization uo ON u.id = uo.user_id AND uo.is_primary = 1
+        <where>
+            <if test="user.userName != null and user.userName != ''">
+                AND u.user_name LIKE CONCAT('%', #{user.userName}, '%')
+            </if>
+            <if test="user.realName != null and user.realName != ''">
+                AND u.real_name LIKE CONCAT('%', #{user.realName}, '%')
+            </if>
+            <if test="user.email != null and user.email != ''">
+                AND u.email LIKE CONCAT('%', #{user.email}, '%')
+            </if>
+            <if test="user.phone != null and user.phone != ''">
+                AND u.phone LIKE CONCAT('%', #{user.phone}, '%')
+            </if>
+            <if test="user.status != null">
+                AND u.status = #{user.status}
+            </if>
+        </where>
+        ORDER BY u.created_at DESC
+    </select>
+
+</mapper>
