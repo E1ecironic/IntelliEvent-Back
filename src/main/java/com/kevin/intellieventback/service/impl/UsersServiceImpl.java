@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.kevin.basecore.modules.email.service.EmailService;
+import com.kevin.basecore.modules.system.service.SysConfigService;
 import com.kevin.intellieventback.domin.entity.Users;
 import com.kevin.intellieventback.domin.entity.UserOrganization;
 import com.kevin.intellieventback.mapper.UsersMapper;
@@ -13,13 +14,13 @@ import com.kevin.intellieventback.service.UsersService;
 import com.kevin.intellieventback.service.UserOrganizationService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.DigestUtils;
 
 import java.time.LocalDateTime;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -48,11 +49,16 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
     @Autowired
     private EmailService emailService;
 
-    @Value("${user.default.password:Aa123456}")
-    private String defaultPassword;
+    @Autowired
+    private SysConfigService sysConfigService;
 
-    @Value("${user.default.avatar:}")
-    private String defaultAvatar;
+    private String getDefaultPassword() {
+        return sysConfigService.getValue("user.default.password", "Aa123456");
+    }
+
+    private String getDefaultAvatar() {
+        return sysConfigService.getValue("user.default.avatar", "");
+    }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -75,7 +81,7 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         String passwordToCheck;
         if (StringUtils.isBlank(user.getPasswordHash())) {
             // 如果用户没有提供密码，使用默认密码
-            passwordToCheck = defaultPassword;
+            passwordToCheck = getDefaultPassword();
         } else {
             // 如果用户提供了密码，校验格式
             passwordToCheck = user.getPasswordHash();
@@ -94,14 +100,14 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
 
         // 使用 BCrypt 加密密码
         if (StringUtils.isBlank(user.getPasswordHash())) {
-            user.setPasswordHash(passwordEncoder.encode(defaultPassword));
+            user.setPasswordHash(passwordEncoder.encode(getDefaultPassword()));
         } else {
             user.setPasswordHash(passwordEncoder.encode(user.getPasswordHash()));
         }
 
         // 设置默认头像
-        if (StringUtils.isBlank(user.getAvatarUrl()) && StringUtils.isNotBlank(defaultAvatar)) {
-            user.setAvatarUrl(defaultAvatar);
+        if (StringUtils.isBlank(user.getAvatarUrl()) && StringUtils.isNotBlank(getDefaultAvatar())) {
+            user.setAvatarUrl(getDefaultAvatar());
         }
 
         // 设置默认值
@@ -179,7 +185,7 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
 
         for (Users user : users) {
             // 生成新密码
-            String newPassword = defaultPassword; // 批量重置通常统一重置为默认密码
+            String newPassword = getDefaultPassword(); // 批量重置通常统一重置为默认密码
             user.setPasswordHash(passwordEncoder.encode(newPassword));
             user.setUpdatedAt(LocalDateTime.now());
             log.info("用户密码已重置为默认密码 - userId: {}, username: {}", user.getId(), user.getUserName());
@@ -199,7 +205,7 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
                     "<h3>您的账户密码已被管理员重置</h3>" +
                     "<p>您的新密码为: <strong>%s</strong></p>" +
                     "<p>为了您的账号安全，请在登录后尽快修改密码。</p>", 
-                    defaultPassword
+                    getDefaultPassword()
                 );
                 emailService.sendHtmlMailBatch(emails, subject, content);
             }

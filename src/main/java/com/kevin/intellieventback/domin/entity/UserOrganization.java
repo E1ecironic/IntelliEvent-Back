@@ -27,13 +27,6 @@ public class UserOrganization extends BaseEntity {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 关系ID，主键，UUID格式
-     */
-    @Schema(description = "关系ID，主键，UUID格式")
-    @TableId(value = "id", type = IdType.ASSIGN_ID)
-    private String id;
-
-    /**
      * 用户ID，关联users表
      */
     @Schema(description = "用户ID，关联users表")
@@ -74,18 +67,6 @@ public class UserOrganization extends BaseEntity {
      */
     @Schema(description = "状态：1-正常 0-已离职/移除 2-停职")
     private Byte status;
-
-    /**
-     * 创建时间
-     */
-    @Schema(description = "创建时间")
-    private LocalDateTime createdAt;
-
-    /**
-     * 更新时间
-     */
-    @Schema(description = "更新时间")
-    private LocalDateTime updatedAt;
 
     /**
      * 创建者用户ID

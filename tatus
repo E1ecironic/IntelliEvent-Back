@@ -1,0 +1,49 @@
+[33mcommit ed6cb6f53409e2ef85bc39700f14e97ae44b544c[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: zhangkaiwen <2118038404@qq.com>
+Date:   Fri Feb 6 14:50:14 2026 +0800
+
+    邮件、系统配置
+
+ .gitignore                                         |   2 [32m+[m
+ pom.xml                                            |   6 [32m+[m
+ .../com/kevin/IntelliEventBackApplication.java     |   2 [32m+[m
+ .../modules/email/service/EmailService.java        |  52 [32m++++++[m
+ .../email/service/impl/EmailServiceImpl.java       | 154 [32m+++++++++++++++++[m
+ .../system/controller/SysConfigController.java     |  54 [32m++++++[m
+ .../basecore/modules/system/entity/SysConfig.java  |  47 [32m+++++[m
+ .../modules/system/mapper/SysConfigMapper.java     |  18 [32m++[m
+ .../modules/system/service/SysConfigService.java   |  46 [32m+++++[m
+ .../system/service/impl/SysConfigServiceImpl.java  |  77 [32m+++++++++[m
+ .../controller/UsersController.java                |  17 [32m+[m[31m-[m
+ .../service/UserOrganizationService.java           |   8 [32m+[m
+ .../intellieventback/service/UsersService.java     |  25 [32m+[m[31m--[m
+ .../service/impl/UserOrganizationServiceImpl.java  |  45 [32m+++++[m
+ .../service/impl/UsersServiceImpl.java             | 192 [32m++++++[m[31m---------------[m
+ src/main/resources/application.properties          |  12 [32m++[m
+ 16 files changed, 588 insertions(+), 169 deletions(-)
+
+[33mcommit 95911c96a7833fba096def5d87328e70c437019f[m
+Author: zhangkaiwen <2118038404@qq.com>
+Date:   Thu Feb 5 15:31:09 2026 +0800
+
+    用户组织页面
+
+ .../common/utils/MybatisPlusGenerator.java         |  31 [32m+++[m[31m---[m
+ .../controller/UserOrganizationController.java     |  68 [32m+++++++++++++[m
+ .../controller/UsersController.java                |  48 [32m+++[m[31m------[m
+ .../domin/dto/UserRegisterDTO.java                 |   3 [32m+[m
+ .../intellieventback/domin/dto/UserUpdateDTO.java  |   3 [32m+[m
+ .../domin/entity/UserOrganization.java             | 107 [32m+++++++++++++++++++++[m
+ .../kevin/intellieventback/domin/entity/Users.java |   7 [32m++[m
+ .../mapper/UserOrganizationMapper.java             |  18 [32m++++[m
+ .../kevin/intellieventback/mapper/UsersMapper.java |   8 [32m++[m
+ .../service/UserOrganizationService.java           |  18 [32m++++[m
+ .../intellieventback/service/UsersService.java     |   8 [32m++[m
+ .../service/impl/UserOrganizationServiceImpl.java  |  25 [32m+++++[m
+ .../service/impl/UsersServiceImpl.java             |  91 [32m++++++++++++[m[31m------[m
+ src/main/resources/application.properties          |   2 [32m+[m
+ .../mapper}/OrganizationsMapper.xml                |   0
+ .../mapper/UserOrganizationMapper.xml}             |   2 [32m+[m[31m-[m
+ src/main/resources/mapper/UsersMapper.xml          |  29 [32m++++++[m
+ src/main/resources/templates/controller.java.ftl   |  85 [32m++++++++[m[31m--------[m
+ 18 files changed, 432 insertions(+), 121 deletions(-)

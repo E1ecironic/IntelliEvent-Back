@@ -5,6 +5,7 @@ import com.kevin.basecore.modules.security.SecurityConstants;
 import com.kevin.basecore.modules.security.model.LoginUser;
 import com.kevin.basecore.modules.security.model.LoginVO;
 import com.kevin.basecore.modules.security.utils.JwtUtil;
+import com.kevin.basecore.modules.system.service.SysConfigService;
 import com.kevin.intellieventback.domin.dto.UserLoginDTO;
 import com.kevin.intellieventback.domin.entity.Users;
 import lombok.RequiredArgsConstructor;
@@ -25,12 +26,11 @@ public class LoginServiceImpl {
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
     private final RedisTemplate<String, Object> redisTemplate;
-
-    @org.springframework.beans.factory.annotation.Value("${security.captcha.enabled:true}")
-    private boolean captchaEnabled;
+    private final SysConfigService sysConfigService;
 
     public Result<LoginVO> login(UserLoginDTO loginDTO) {
         // 1. 校验验证码 (sa 账号免码登录)
+        boolean captchaEnabled = Boolean.parseBoolean(sysConfigService.getValue("security.captcha.enabled", "true"));
         if (captchaEnabled && !"sa".equals(loginDTO.getUserName())) {
             String captchaKey = SecurityConstants.CAPTCHA_PRE + loginDTO.getUuid();
             String captchaCode = (String) redisTemplate.opsForValue().get(captchaKey);

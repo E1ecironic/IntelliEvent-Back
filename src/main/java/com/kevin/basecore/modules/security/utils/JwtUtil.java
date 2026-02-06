@@ -4,10 +4,12 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.rsa.crypto.KeyStoreKeyFactory;
 import org.springframework.stereotype.Component;
+import com.kevin.basecore.modules.system.service.SysConfigService;
 
 import jakarta.annotation.PostConstruct;
 import java.security.KeyPair;
@@ -22,6 +24,9 @@ import java.util.function.Function;
 @Component
 public class JwtUtil {
 
+    @Autowired
+    private SysConfigService sysConfigService;
+
     @Value("${security.jwt.key-path:keys/intellievent.jks}")
     private String keyPath;
 
@@ -30,9 +35,6 @@ public class JwtUtil {
 
     @Value("${security.jwt.key-pass:123456}")
     private String keyPass;
-
-    @Value("${security.jwt.expiration:1440}")
-    private Long expiration;
 
     private PrivateKey privateKey;
     private PublicKey publicKey;
@@ -56,6 +58,7 @@ public class JwtUtil {
     }
 
     public String generateToken(String subject, Map<String, Object> claims) {
+        long expiration = Long.parseLong(sysConfigService.getValue("security.jwt.expiration", "1440"));
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(subject)

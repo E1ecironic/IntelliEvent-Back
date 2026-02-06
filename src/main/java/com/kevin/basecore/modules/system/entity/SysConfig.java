@@ -26,10 +26,6 @@ public class SysConfig extends BaseEntity {
 
     private static final long serialVersionUID = 1L;
 
-    @Schema(description = "主键ID")
-    @TableId(value = "id", type = IdType.ASSIGN_ID)
-    private String id;
-
     @Schema(description = "配置键")
     private String configKey;
 
@@ -38,10 +34,4 @@ public class SysConfig extends BaseEntity {
 
     @Schema(description = "描述")
     private String description;
-
-    @Schema(description = "创建时间")
-    private LocalDateTime createdAt;
-
-    @Schema(description = "更新时间")
-    private LocalDateTime updatedAt;
 }

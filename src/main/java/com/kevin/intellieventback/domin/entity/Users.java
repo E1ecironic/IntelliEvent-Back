@@ -31,13 +31,6 @@ public class Users extends BaseEntity implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 用户ID，主键
-     */
-    @Schema(description = "用户ID，主键")
-    @TableId(value = "id", type = IdType.ASSIGN_ID)
-    private String id;
-
-    /**
      * 用户名，唯一
      */
     @Schema(description = "用户名，唯一")
@@ -96,18 +89,6 @@ public class Users extends BaseEntity implements Serializable {
      */
     @Schema(description = "用户个性化设置（JSON格式）")
     private String settings;
-
-    /**
-     * 创建时间
-     */
-    @Schema(description = "创建时间")
-    private LocalDateTime createdAt;
-
-    /**
-     * 更新时间
-     */
-    @Schema(description = "更新时间")
-    private LocalDateTime updatedAt;
 
     /**
      * 密码盐值

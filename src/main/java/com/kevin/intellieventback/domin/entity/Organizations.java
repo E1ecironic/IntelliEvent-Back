@@ -34,13 +34,6 @@ public class Organizations extends BaseEntity implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 组织ID，主键
-     */
-    @Schema(description = "组织ID，主键")
-    @TableId(value = "id", type = IdType.ASSIGN_ID)
-    private String id;
-
-    /**
      * 组织名称
      */
     @TableField("name")
@@ -104,24 +97,9 @@ public class Organizations extends BaseEntity implements Serializable {
     private String email;
 
     /**
-     * 创建时间
-     */
-    @TableField("created_at")
-    @Schema(description = "创建时间")
-    private LocalDateTime createdAt;
-
-    /**
-     * 更新时间
-     */
-    @TableField("updated_at")
-    @Schema(description = "更新时间")
-    private LocalDateTime updatedAt;
-
-    /**
      * 子组织结构
      */
     @TableField(exist = false)
     @Schema(description = "子组织结构")
     private List<Organizations> children;
-
 }

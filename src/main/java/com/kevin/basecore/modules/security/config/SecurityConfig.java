@@ -50,6 +50,7 @@ public class SecurityConfig {
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/v3/api-docs/**")).permitAll()
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/swagger-resources/**")).permitAll()
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/webjars/**")).permitAll()
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/files/**")).permitAll()
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/favicon.ico")).permitAll()
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/logout.do")).authenticated()
                         .anyRequest().authenticated();

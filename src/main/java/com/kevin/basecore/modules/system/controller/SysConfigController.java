@@ -1,5 +1,6 @@
 package com.kevin.basecore.modules.system.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.kevin.basecore.common.domin.Result;
@@ -8,6 +9,7 @@ import com.kevin.basecore.modules.system.service.SysConfigService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -31,7 +33,16 @@ public class SysConfigController {
     public Result<IPage<SysConfig>> page(SysConfig sysConfig) {
         Page<SysConfig> page = new Page<>(sysConfig.getPageNum() != null ? sysConfig.getPageNum() : 1, 
                                           sysConfig.getPageSize() != null ? sysConfig.getPageSize() : 10);
-        return Result.success(sysConfigService.page(page));
+        
+        LambdaQueryWrapper<SysConfig> wrapper = new LambdaQueryWrapper<>();
+        // 支持模糊查询 configKey
+        if (StringUtils.hasText(sysConfig.getConfigKey())) {
+            wrapper.like(SysConfig::getConfigKey, sysConfig.getConfigKey());
+        }
+        // 按 configKey 升序排序
+        wrapper.orderByAsc(SysConfig::getConfigKey);
+        
+        return Result.success(sysConfigService.page(page, wrapper));
     }
 
     @GetMapping("/{key}")
