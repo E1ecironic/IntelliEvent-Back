@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.kevin.basecore.modules.email.service.EmailService;
 import com.kevin.intellieventback.domin.entity.Users;
 import com.kevin.intellieventback.domin.entity.UserOrganization;
 import com.kevin.intellieventback.mapper.UsersMapper;
@@ -19,9 +20,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.DigestUtils;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -41,74 +45,14 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
     @Autowired
     private UserOrganizationService userOrganizationService;
 
+    @Autowired
+    private EmailService emailService;
+
     @Value("${user.default.password:Aa123456}")
     private String defaultPassword;
 
     @Value("${user.default.avatar:}")
     private String defaultAvatar;
-
-    @Value("${user.login.max-attempts:5}")
-    private Integer maxLoginAttempts;
-
-    @Value("${user.login.lock-time:30}")
-    private Integer accountLockTime;
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public Map<String, Object> login(String username, String password) {
-        Map<String, Object> result = new HashMap<>();
-
-        // 根据用户名或邮箱查询用户
-        LambdaQueryWrapper<Users> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Users::getUserName, username).or().eq(Users::getEmail, username);
-        Users user = getOne(queryWrapper);
-
-        if (user == null) {
-            log.warn("登录失败：用户不存在 - username: {}", username);
-            result.put("success", false);
-            result.put("message", "用户名或密码错误");
-            return result;
-        }
-
-        // 检查用户状态
-        if (user.getStatus() == 0) {
-            log.warn("登录失败：用户已被禁用 - userId: {}", user.getId());
-            result.put("success", false);
-            result.put("message", "用户已被禁用，请联系管理员");
-            return result;
-        }
-
-        if (user.getStatus() == 2) {
-            log.warn("登录失败：用户未激活 - userId: {}", user.getId());
-            result.put("success", false);
-            result.put("message", "用户未激活，请先激活账户");
-            return result;
-        }
-
-        // 验证密码
-        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            log.warn("登录失败：密码错误 - userId: {}", user.getId());
-            result.put("success", false);
-            result.put("message", "用户名或密码错误");
-            return result;
-        }
-
-        // 更新最后登录时间
-        user.setLastLoginAt(LocalDateTime.now());
-        updateById(user);
-
-        log.info("用户登录成功 - userId: {}, username: {}", user.getId(), user.getUserName());
-
-        // 移除敏感信息
-        user.setPasswordHash(null);
-        user.setSalt(null);
-
-        result.put("success", true);
-        result.put("message", "登录成功");
-        result.put("user", user);
-
-        return result;
-    }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -178,16 +122,7 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
 
         // 保存组织关联关系
         if (success && StringUtils.isNotBlank(user.getOrganizationId())) {
-            UserOrganization userOrg = new UserOrganization();
-            userOrg.setUserId(user.getId());
-            userOrg.setOrganizationId(user.getOrganizationId());
-            userOrg.setRoleType((byte) 1); // 默认普通成员
-            userOrg.setIsPrimary(true);
-            userOrg.setStatus((byte) 1);
-            userOrg.setCreatedAt(LocalDateTime.now());
-            userOrg.setUpdatedAt(LocalDateTime.now());
-            userOrganizationService.save(userOrg);
-            log.info("关联用户组织成功 - userId: {}, organizationId: {}", user.getId(), user.getOrganizationId());
+            userOrganizationService.updateUserOrganization(user.getId(), user.getOrganizationId());
         }
 
         if (success) {
@@ -230,35 +165,47 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean resetPassword(String email) {
-        log.info("重置密码 - email: {}", email);
+    public boolean resetPassword(List<String> userIds) {
+        log.info("批量重置密码 - userIds: {}", userIds);
 
-        LambdaQueryWrapper<Users> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Users::getEmail, email);
-        Users user = getOne(queryWrapper);
-
-        if (user == null) {
-            log.error("重置密码失败：邮箱不存在 - email: {}", email);
-            throw new RuntimeException("邮箱不存在");
+        if (userIds == null || userIds.isEmpty()) {
+            return true;
         }
 
-        // 生成新密码
-        String newPassword = generateRandomPassword();
-        user.setPasswordHash(passwordEncoder.encode(newPassword));
-        user.setUpdatedAt(LocalDateTime.now());
-
-        boolean result = updateById(user);
-
-        if (result) {
-            // TODO: 发送邮件通知用户新密码
-            log.info("用户密码已重置，新密码为：{} - userId: {}, email: {}",
-                    newPassword, user.getId(), email);
-            // 实际项目中应该发送邮件，这里只记录日志
-        } else {
-            log.error("重置密码失败 - email: {}", email);
+        List<Users> users = listByIds(userIds);
+        if (users.size() != userIds.size()) {
+            log.warn("部分用户不存在 - 期望数量: {}, 实际数量: {}", userIds.size(), users.size());
         }
 
-        return result;
+        for (Users user : users) {
+            // 生成新密码
+            String newPassword = defaultPassword; // 批量重置通常统一重置为默认密码
+            user.setPasswordHash(passwordEncoder.encode(newPassword));
+            user.setUpdatedAt(LocalDateTime.now());
+            log.info("用户密码已重置为默认密码 - userId: {}, username: {}", user.getId(), user.getUserName());
+        }
+
+        boolean success = updateBatchById(users);
+        if (success) {
+            // 批量发送邮件通知
+            List<String> emails = users.stream()
+                    .map(Users::getEmail)
+                    .filter(StringUtils::isNotBlank)
+                    .collect(Collectors.toList());
+            
+            if (!emails.isEmpty()) {
+                String subject = "账户密码重置通知";
+                String content = String.format(
+                    "<h3>您的账户密码已被管理员重置</h3>" +
+                    "<p>您的新密码为: <strong>%s</strong></p>" +
+                    "<p>为了您的账号安全，请在登录后尽快修改密码。</p>", 
+                    defaultPassword
+                );
+                emailService.sendHtmlMailBatch(emails, subject, content);
+            }
+        }
+
+        return success;
     }
 
     @Override
@@ -329,44 +276,6 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         return updateById(user);
     }
 
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public boolean updateUserOrganization(String userId, String organizationId) {
-        log.info("更新用户组织关系 - userId: {}, organizationId: {}", userId, organizationId);
-        
-        if (StringUtils.isBlank(organizationId)) {
-            return true;
-        }
-
-        // 1. 查询现有的主组织关系
-        LambdaQueryWrapper<UserOrganization> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(UserOrganization::getUserId, userId)
-                    .eq(UserOrganization::getIsPrimary, true);
-        UserOrganization existing = userOrganizationService.getOne(queryWrapper);
-
-        if (existing != null) {
-            // 如果组织 ID 没变，直接返回
-            if (organizationId.equals(existing.getOrganizationId())) {
-                return true;
-            }
-            // 2. 更新现有的主组织关系
-            existing.setOrganizationId(organizationId);
-            existing.setUpdatedAt(LocalDateTime.now());
-            return userOrganizationService.updateById(existing);
-        } else {
-            // 3. 不存在则新增
-            UserOrganization userOrg = new UserOrganization();
-            userOrg.setUserId(userId);
-            userOrg.setOrganizationId(organizationId);
-            userOrg.setRoleType((byte) 1);
-            userOrg.setIsPrimary(true);
-            userOrg.setStatus((byte) 1);
-            userOrg.setCreatedAt(LocalDateTime.now());
-            userOrg.setUpdatedAt(LocalDateTime.now());
-            return userOrganizationService.save(userOrg);
-        }
-    }
-
     /**
      * 生成随机密码
      */
@@ -378,18 +287,23 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
      * 状态转换为字符串
      */
     private String statusToString(Byte status) {
-        if (status == null) return "未知";
+        if (status == null)
+            return "未知";
         switch (status) {
-            case 0: return "禁用";
-            case 1: return "正常";
-            case 2: return "待激活";
-            default: return "未知";
+            case 0:
+                return "禁用";
+            case 1:
+                return "正常";
+            case 2:
+                return "待激活";
+            default:
+                return "未知";
         }
     }
 
-
     /**
      * 校验密码格式
+     * 
      * @param password 明文密码
      * @return 是否符合格式要求
      */

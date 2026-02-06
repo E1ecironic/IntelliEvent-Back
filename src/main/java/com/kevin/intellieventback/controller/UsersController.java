@@ -5,19 +5,20 @@ import com.kevin.intellieventback.domin.dto.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.constraints.Email;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import com.kevin.intellieventback.domin.entity.Users;
 import com.kevin.intellieventback.service.UsersService;
+import com.kevin.intellieventback.service.UserOrganizationService;
 import com.kevin.basecore.common.domin.Result;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import org.springframework.beans.BeanUtils;
 
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -38,12 +39,8 @@ public class UsersController {
     @Autowired
     private UsersService usersService;
 
-    @PostMapping("/login")
-    @Operation(summary = "用户登录")
-    public Result<Map<String, Object>> login(@Valid @RequestBody UserLoginDTO loginDTO) {
-        Map<String, Object> result = usersService.login(loginDTO.getUserName(), loginDTO.getPassword());
-        return Result.success(result);
-    }
+    @Autowired
+    private UserOrganizationService userOrganizationService;
 
     @PostMapping("/register")
     @Operation(summary = "用户注册")
@@ -69,8 +66,8 @@ public class UsersController {
 
     @PostMapping("/reset-password")
     @Operation(summary = "重置密码")
-    public Result<Boolean> resetPassword(@RequestParam @Valid @Email(message = "邮箱格式不正确") String email) {
-        boolean result = usersService.resetPassword(email);
+    public Result<Boolean> resetPassword(@RequestBody List<String> userIds) {
+        boolean result = usersService.resetPassword(userIds);
         return Result.success(result);
     }
 
@@ -131,7 +128,7 @@ public class UsersController {
         
         // 更新组织关系
         if (result && StringUtils.isNotBlank(user.getOrganizationId())) {
-            usersService.updateUserOrganization(user.getId(), user.getOrganizationId());
+            userOrganizationService.updateUserOrganization(user.getId(), user.getOrganizationId());
         }
         
         return Result.success(result);

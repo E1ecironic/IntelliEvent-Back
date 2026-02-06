@@ -4,6 +4,7 @@ import com.kevin.intellieventback.domin.entity.Users;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -15,14 +16,6 @@ import java.util.Map;
  * @since 2025-12-21
  */
 public interface UsersService extends IService<Users> {
-
-    /**
-     * 用户登录
-     * @param username 用户名或邮箱
-     * @param password 密码
-     * @return 登录结果
-     */
-    Map<String, Object> login(String username, String password);
 
     /**
      * 用户注册
@@ -41,11 +34,11 @@ public interface UsersService extends IService<Users> {
     boolean changePassword(String userId, String oldPassword, String newPassword);
 
     /**
-     * 重置密码
-     * @param email 邮箱
-     * @return 是否成功
+     * 批量重置密码
+     * @param userIds 用户ID列表
+     * @return 是否全部重置成功
      */
-    boolean resetPassword(String email);
+    boolean resetPassword(List<String> userIds);
 
     /**
      * 更新用户状态
@@ -82,12 +75,4 @@ public interface UsersService extends IService<Users> {
      * @return 是否成功
      */
     boolean updateLastLoginTime(String userId);
-
-    /**
-     * 更新用户组织关系
-     * @param userId 用户ID
-     * @param organizationId 组织ID
-     * @return 是否成功
-     */
-    boolean updateUserOrganization(String userId, String organizationId);
 }
