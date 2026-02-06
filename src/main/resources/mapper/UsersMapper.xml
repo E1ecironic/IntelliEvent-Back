@@ -22,6 +22,9 @@
             <if test="user.status != null">
                 AND u.status = #{user.status}
             </if>
+            <if test="user.organizationId != null and user.organizationId != ''">
+                AND EXISTS (SELECT 1 FROM user_organization uo_filter WHERE uo_filter.user_id = u.id AND uo_filter.organization_id = #{user.organizationId})
+            </if>
         </where>
         ORDER BY u.created_at DESC
     </select>

@@ -102,4 +102,11 @@ public class Users extends BaseEntity implements Serializable {
     @TableField(exist = false)
     @Schema(description = "组织ID")
     private String organizationId;
+
+    /**
+     * 组织全链路名称（非持久化字段），如：总公司/子公司
+     */
+    @TableField(exist = false)
+    @Schema(description = "组织全链路名称")
+    private String orgPathName;
 }

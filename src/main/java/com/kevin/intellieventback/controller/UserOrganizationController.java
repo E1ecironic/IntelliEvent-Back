@@ -7,11 +7,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import com.kevin.intellieventback.domin.entity.UserOrganization;
+import com.kevin.intellieventback.domin.entity.Users;
 import com.kevin.intellieventback.service.UserOrganizationService;
 import com.kevin.basecore.common.domin.Result;
 import com.kevin.basecore.common.domin.PageResult;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 
+import java.util.List;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -64,5 +66,12 @@ public class UserOrganizationController {
     public Result page(@RequestBody UserOrganization entity) {
         IPage<UserOrganization> page = userOrganizationService.pagelist(entity);
         return Result.success(PageResult.returnResult(page.getTotal(), page.getRecords()));
+    }
+
+    @GetMapping("/list-users-by-org/{orgId}")
+    @Operation(summary = "根据组织ID查询用户列表（包含下级组织用户）")
+    public Result<List<Users>> listUsersByOrgId(@Parameter(description = "组织ID", required = true) @PathVariable String orgId) {
+        List<Users> users = userOrganizationService.listUsersByOrgId(orgId);
+        return Result.success(users);
     }
 }

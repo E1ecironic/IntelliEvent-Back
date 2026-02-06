@@ -28,8 +28,10 @@ public class OrganizationsServiceImpl extends ServiceImpl<OrganizationsMapper, O
 
     @Override
     public IPage<Organizations> pagelist(Organizations entity) {
+        long current = entity.getPageNum() == null ? 1L : entity.getPageNum();
+        long size = entity.getPageSize() == null ? 10L : entity.getPageSize();
         // 创建分页对象
-        IPage<Organizations> page = new Page<>(entity.getPageNum(), entity.getPageSize());
+        IPage<Organizations> page = new Page<>(current, size);
 
         // 创建查询条件 - 先查询顶级组织
         LambdaQueryWrapper<Organizations> queryWrapper = new LambdaQueryWrapper<>();
@@ -72,7 +74,7 @@ public class OrganizationsServiceImpl extends ServiceImpl<OrganizationsMapper, O
         List<Organizations> treeList = buildTreeStructure(topOrganizations, allOrganizations);
 
         // 创建新的分页结果
-        IPage<Organizations> resultPage = new Page<>(entity.getPageNum(), entity.getPageSize());
+        IPage<Organizations> resultPage = new Page<>(current, size);
         resultPage.setRecords(treeList);
         resultPage.setTotal(rawPage.getTotal());
         resultPage.setCurrent(rawPage.getCurrent());
@@ -178,11 +180,66 @@ public class OrganizationsServiceImpl extends ServiceImpl<OrganizationsMapper, O
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean updateDataById(Organizations entity) {
+        // 1. 基础校验
+        if (StringUtils.isBlank(entity.getId())) {
+            throw new RuntimeException("组织ID不能为空");
+        }
+        Organizations oldOrg = getById(entity.getId());
+        if (oldOrg == null) {
+            throw new RuntimeException("组织不存在");
+        }
+
+        // 2. 父组织变更校验逻辑
+        // 只有当 parentId 不为空且发生变化时才进行校验（MyBatis-Plus updateById 默认忽略 null 字段，无法通过此接口置空父节点）
+        if (StringUtils.isNotBlank(entity.getParentId()) && !entity.getParentId().equals(oldOrg.getParentId())) {
+            String newParentId = entity.getParentId();
+
+            // 2.1 自身循环校验
+            if (newParentId.equals(entity.getId())) {
+                throw new RuntimeException("操作失败：不能将组织自身设置为父组织");
+            }
+
+            // 2.2 父组织存在性校验
+            Organizations newParent = getById(newParentId);
+            if (newParent == null) {
+                throw new RuntimeException("操作失败：指定的父组织不存在");
+            }
+
+            // 2.3 环形依赖校验（不能将下级组织设置为父组织）
+            List<String> allDescendantIds = getAllChildIds(entity.getId());
+            if (allDescendantIds.contains(newParentId)) {
+                throw new RuntimeException("操作失败：不能将下级组织设置为父组织，这将导致环形依赖");
+            }
+
+            // 2.4 维护层级数据 (Level)
+            // 新的层级 = 父组织层级 + 1
+            Integer newLevel = null;
+            if (newParent.getLevel() != null) {
+                newLevel = newParent.getLevel() + 1;
+                entity.setLevel(newLevel);
+            }
+            
+            // 2.5 递归更新所有子组织的层级
+            // 如果层级发生了变化，所有子组织的层级都需要相应调整
+            Integer oldLevel = oldOrg.getLevel();
+            if (newLevel != null && oldLevel != null && !newLevel.equals(oldLevel)) {
+                int levelDiff = newLevel - oldLevel;
+                List<String> allChildIds = getAllChildIds(entity.getId());
+                
+                if (!CollectionUtils.isEmpty(allChildIds)) {
+                    // 使用 SQL 直接批量更新效率更高: update organizations set level = level + diff where id in (...)
+                    baseMapper.updateLevelDiff(allChildIds, levelDiff);
+                }
+            }
+        }
+
+        // 3. 状态联动更新逻辑
         // 当更新状态时，同时更新子组织状态
-        if (entity.getStatus() != null && entity.getId() != null) {
-            // 1. 先更新当前组织
+        if (entity.getStatus() != null) {
+            // 3.1 先更新当前组织
             boolean updated = updateById(entity);
-            // 2. 获取所有子组织ID并批量更新
+            
+            // 3.2 获取所有子组织ID并批量更新
             List<String> allChildIds = getAllChildIds(entity.getId());
             if (!CollectionUtils.isEmpty(allChildIds)) {
                 // 批量更新所有子组织的状态
@@ -193,6 +250,7 @@ public class OrganizationsServiceImpl extends ServiceImpl<OrganizationsMapper, O
             }
             return updated;
         }
+
         return updateById(entity);
     }
 

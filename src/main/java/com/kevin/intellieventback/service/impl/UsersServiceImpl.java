@@ -244,9 +244,11 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
 
     @Override
     public IPage<Users> pageList(Users user) {
-        Page<Users> page = new Page<>(user.getPageNum(), user.getPageSize());
+        long current = user.getPageNum() == null ? 1L : user.getPageNum();
+        long size = user.getPageSize() == null ? 10L : user.getPageSize();
+        Page<Users> page = new Page<>(current, size);
         log.debug("用户分页查询(含组织ID) - pageNum: {}, pageSize: {}, username: {}, realName: {}",
-                user.getPageNum(), user.getPageSize(), user.getUserName(), user.getRealName());
+                current, size, user.getUserName(), user.getRealName());
 
         IPage<Users> result = baseMapper.selectUserPageWithOrg(page, user);
         log.debug("用户分页查询完成 - 总数: {}", result.getTotal());

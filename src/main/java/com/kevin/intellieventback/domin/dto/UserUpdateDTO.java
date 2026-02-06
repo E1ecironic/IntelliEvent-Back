@@ -35,4 +35,7 @@ public class UserUpdateDTO {
 
     @Schema(description = "组织ID", example = "2019234348271816705")
     private String organizationId;
+
+    @Schema(description = "状态", example = "1")
+    private Byte status;
 }
