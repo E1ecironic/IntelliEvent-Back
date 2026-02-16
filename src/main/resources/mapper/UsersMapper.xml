@@ -3,9 +3,21 @@
 <mapper namespace="com.kevin.intellieventback.mapper.UsersMapper">
 
     <select id="selectUserPageWithOrg" resultType="com.kevin.intellieventback.domin.entity.Users">
-        SELECT u.*, uo.organization_id as organizationId
+        SELECT
+            u.*,
+            uo.organization_id as organizationId,
+            o.name as organizationName,
+            roleAgg.roleNames as roleNames
         FROM users u
-        LEFT JOIN user_organization uo ON u.id = uo.user_id AND uo.is_primary = 1
+        LEFT JOIN user_organization uo ON u.id COLLATE utf8mb4_general_ci = uo.user_id COLLATE utf8mb4_general_ci AND uo.is_primary = 1
+        LEFT JOIN organizations o ON o.id COLLATE utf8mb4_general_ci = uo.organization_id COLLATE utf8mb4_general_ci
+        LEFT JOIN (
+            SELECT ur.user_id,
+                   GROUP_CONCAT(DISTINCT r.name ORDER BY r.sort SEPARATOR '、') AS roleNames
+            FROM sys_user_role ur
+            LEFT JOIN sys_role r ON r.id COLLATE utf8mb4_general_ci = ur.role_id COLLATE utf8mb4_general_ci
+            GROUP BY ur.user_id
+        ) roleAgg ON roleAgg.user_id COLLATE utf8mb4_general_ci = u.id COLLATE utf8mb4_general_ci
         <where>
             <if test="user.userName != null and user.userName != ''">
                 AND u.user_name LIKE CONCAT('%', #{user.userName}, '%')
