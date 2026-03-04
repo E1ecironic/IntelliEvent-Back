@@ -3,6 +3,7 @@ package com.kevin.intellieventback.controller;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.kevin.basecore.common.domin.PageResult;
 import com.kevin.basecore.common.domin.Result;
+import com.kevin.intellieventback.domin.dto.ActivityDetailDTO;
 import com.kevin.intellieventback.domin.entity.Activities;
 import com.kevin.intellieventback.service.ActivitiesService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -52,5 +53,13 @@ public class ActivitiesController {
     public Result page(@RequestBody Activities entity) {
         IPage<Activities> page = activitiesService.pageList(entity);
         return Result.success(PageResult.returnResult(page.getTotal(), page.getRecords()));
+    }
+
+    @GetMapping("/{id}/detail")
+    @Operation(summary = "查询活动详情（包含所有关联数据）")
+    public Result<ActivityDetailDTO> getActivityDetail(
+            @Parameter(description = "活动ID", required = true) @PathVariable String id) {
+        ActivityDetailDTO detail = activitiesService.getActivityFullDetail(id);
+        return Result.success(detail);
     }
 }

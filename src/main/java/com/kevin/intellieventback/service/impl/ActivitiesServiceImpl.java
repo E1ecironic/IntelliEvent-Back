@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.kevin.basecore.modules.security.utils.SecurityUtils;
+import com.kevin.intellieventback.domin.dto.ActivityDetailDTO;
 import com.kevin.intellieventback.domin.entity.Activities;
 import com.kevin.intellieventback.domin.entity.ActivityUser;
 import com.kevin.intellieventback.domin.entity.Users;
@@ -13,6 +14,12 @@ import com.kevin.intellieventback.mapper.ActivitiesMapper;
 import com.kevin.intellieventback.mapper.ActivityUserMapper;
 import com.kevin.intellieventback.mapper.UsersMapper;
 import com.kevin.intellieventback.service.ActivitiesService;
+import com.kevin.intellieventback.service.ActivityBudgetService;
+import com.kevin.intellieventback.service.ActivityParticipantService;
+import com.kevin.intellieventback.service.ActivityRiskService;
+import com.kevin.intellieventback.service.ActivityScheduleService;
+import com.kevin.intellieventback.service.ActivitySupplierService;
+import com.kevin.intellieventback.service.ActivityTaskService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +39,24 @@ public class ActivitiesServiceImpl extends ServiceImpl<ActivitiesMapper, Activit
 
     @Autowired
     private UsersMapper usersMapper;
+
+    @Autowired
+    private ActivityTaskService activityTaskService;
+
+    @Autowired
+    private ActivityBudgetService activityBudgetService;
+
+    @Autowired
+    private ActivityParticipantService activityParticipantService;
+
+    @Autowired
+    private ActivitySupplierService activitySupplierService;
+
+    @Autowired
+    private ActivityRiskService activityRiskService;
+
+    @Autowired
+    private ActivityScheduleService activityScheduleService;
 
     @Override
     public IPage<Activities> pageList(Activities entity) {
@@ -175,5 +200,38 @@ public class ActivitiesServiceImpl extends ServiceImpl<ActivitiesMapper, Activit
         }
 
         return activity;
+    }
+
+    @Override
+    public ActivityDetailDTO getActivityFullDetail(String id) {
+        ActivityDetailDTO dto = new ActivityDetailDTO();
+
+        // 1. 获取活动基本信息
+        Activities activity = getActivityDetail(id);
+        dto.setActivity(activity);
+
+        if (activity == null) {
+            return dto;
+        }
+
+        // 2. 获取日程列表
+        dto.setSchedules(activityScheduleService.getSchedulesByActivityId(id));
+
+        // 3. 获取任务列表
+        dto.setTasks(activityTaskService.getTasksByActivityId(id));
+
+        // 4. 获取预算列表
+        dto.setBudgets(activityBudgetService.getBudgetsByActivityId(id));
+
+        // 5. 获取人员列表
+        dto.setParticipants(activityParticipantService.getParticipantsByActivityId(id));
+
+        // 6. 获取供应商列表
+        dto.setSuppliers(activitySupplierService.getSuppliersByActivityId(id));
+
+        // 7. 获取风险列表
+        dto.setRisks(activityRiskService.getRisksByActivityId(id));
+
+        return dto;
     }
 }
