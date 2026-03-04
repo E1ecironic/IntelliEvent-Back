@@ -67,6 +67,12 @@ public class SysConfigServiceImpl extends ServiceImpl<SysConfigMapper, SysConfig
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean saveOrUpdateConfig(String key, String value, String description) {
+        return saveOrUpdateConfig(key, value, description, null);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean saveOrUpdateConfig(String key, String value, String description, String module) {
         if (!StringUtils.hasText(key)) {
             return false;
         }
@@ -83,6 +89,9 @@ public class SysConfigServiceImpl extends ServiceImpl<SysConfigMapper, SysConfig
         config.setConfigValue(value);
         if (StringUtils.hasText(description)) {
             config.setDescription(description);
+        }
+        if (StringUtils.hasText(module)) {
+            config.setModule(module);
         }
         config.setUpdatedAt(LocalDateTime.now());
         

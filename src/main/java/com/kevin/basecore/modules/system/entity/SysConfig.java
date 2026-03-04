@@ -34,4 +34,7 @@ public class SysConfig extends BaseEntity {
 
     @Schema(description = "描述")
     private String description;
+
+    @Schema(description = "模块分组")
+    private String module;
 }

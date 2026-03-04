@@ -38,6 +38,16 @@ public interface SysConfigService extends IService<SysConfig> {
     boolean saveOrUpdateConfig(String key, String value, String description);
 
     /**
+     * 更新或保存配置(含模块分组)
+     * @param key 键
+     * @param value 值
+     * @param description 描述
+     * @param module 模块分组
+     * @return 是否成功
+     */
+    boolean saveOrUpdateConfig(String key, String value, String description, String module);
+
+    /**
      * 根据键删除配置
      * @param key 键
      * @return 是否成功
