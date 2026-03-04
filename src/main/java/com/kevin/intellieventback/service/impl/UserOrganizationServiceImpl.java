@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.kevin.basecore.modules.security.utils.SecurityUtils;
 import com.kevin.intellieventback.domin.entity.Organizations;
 import com.kevin.intellieventback.domin.entity.UserOrganization;
 import com.kevin.intellieventback.domin.entity.Users;
@@ -164,5 +165,31 @@ public class UserOrganizationServiceImpl extends ServiceImpl<UserOrganizationMap
             userOrg.setUpdatedAt(LocalDateTime.now());
             return save(userOrg);
         }
+    }
+
+    @Override
+    public List<Users> getCurrentUserOrgMembers() {
+        String currentUserId = SecurityUtils.getUserId();
+        if (StringUtils.isBlank(currentUserId)) {
+            log.warn("当前用户ID为空");
+            return Collections.emptyList();
+        }
+
+        // 1. 查询当前用户的组织关系
+        LambdaQueryWrapper<UserOrganization> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(UserOrganization::getUserId, currentUserId)
+               .eq(UserOrganization::getIsPrimary, true);
+        UserOrganization userOrg = getOne(wrapper);
+
+        if (userOrg == null || StringUtils.isBlank(userOrg.getOrganizationId())) {
+            log.warn("当前用户未关联主组织，userId: {}", currentUserId);
+            return Collections.emptyList();
+        }
+
+        String orgId = userOrg.getOrganizationId();
+        log.info("当前用户ID: {}, 组织ID: {}", currentUserId, orgId);
+
+        // 2. 调用现有的 listUsersByOrgId 方法获取组织成员
+        return listUsersByOrgId(orgId);
     }
 }

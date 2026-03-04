@@ -33,4 +33,10 @@ public interface UserOrganizationService extends IService<UserOrganization> {
      * @return 用户列表
      */
     List<Users> listUsersByOrgId(String orgId);
+
+    /**
+     * 获取当前用户所在组织的成员列表
+     * @return 用户列表
+     */
+    List<Users> getCurrentUserOrgMembers();
 }

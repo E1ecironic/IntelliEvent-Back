@@ -8,4 +8,6 @@ public interface ActivitiesService extends IService<Activities> {
     IPage<Activities> pageList(Activities entity);
 
     boolean saveActivity(Activities entity);
+
+    Activities getActivityDetail(String id);
 }

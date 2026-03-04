@@ -74,4 +74,11 @@ public class UserOrganizationController {
         List<Users> users = userOrganizationService.listUsersByOrgId(orgId);
         return Result.success(users);
     }
+
+    @GetMapping("/current-user-org-members")
+    @Operation(summary = "获取当前用户所在组织的成员列表")
+    public Result<List<Users>> getCurrentUserOrgMembers() {
+        List<Users> users = userOrganizationService.getCurrentUserOrgMembers();
+        return Result.success(users);
+    }
 }

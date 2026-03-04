@@ -59,6 +59,10 @@ public class Activities extends BaseEntity implements Serializable {
     @Schema(description = "负责人")
     private String responsible;
 
+    @TableField(exist = false)
+    @Schema(description = "负责人姓名（非数据库字段）")
+    private String responsibleName;
+
     @TableField("description")
     @Schema(description = "活动描述")
     private String description;

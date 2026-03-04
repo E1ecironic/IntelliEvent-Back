@@ -8,6 +8,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,6 +19,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class TokenAuthenticationFilter extends OncePerRequestFilter {
@@ -30,44 +32,59 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String header = request.getHeader(SecurityConstants.HEADER_STRING);
         
-        // 改进 Token 提取逻辑，支持大小写不敏感的 Bearer 前缀
+        log.debug("请求头 Authorization: {}", header);
+        
         if (StringUtils.hasText(header) && header.toLowerCase().startsWith(SecurityConstants.TOKEN_PREFIX.toLowerCase())) {
             String token = header.substring(SecurityConstants.TOKEN_PREFIX.length()).trim();
+            log.debug("提取的 Token: {}", token);
+            
             if (!StringUtils.hasText(token)) {
+                log.debug("Token 为空，跳过认证");
                 chain.doFilter(request, response);
                 return;
             }
 
             try {
-                // 增加简单的格式检查，避免解析非 JWT 格式的字符串
                 if (token.split("\\.").length != 3) {
-                    logger.warn("Token format invalid (no dots found): " + token);
+                    log.warn("Token 格式无效: {}", token);
                     chain.doFilter(request, response);
                     return;
                 }
 
                 String userName = jwtUtil.getUsernameFromToken(token);
+                log.debug("Token 中的用户名: {}", userName);
 
                 if (userName != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    // 校验 Redis 状态
-                    LoginUser loginUser = (LoginUser) redisTemplate.opsForValue().get(SecurityConstants.ONLINE_PRE + userName);
+                    String redisKey = SecurityConstants.ONLINE_PRE + userName;
+                    LoginUser loginUser = (LoginUser) redisTemplate.opsForValue().get(redisKey);
+                    log.debug("Redis 中的用户信息: {}", loginUser);
+                    log.debug("Redis Key: {}", redisKey);
 
                     if (loginUser != null && jwtUtil.validateToken(token, userName)) {
                         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                                 loginUser, null, loginUser.getAuthorities());
                         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                         SecurityContextHolder.getContext().setAuthentication(authentication);
+                        log.debug("认证成功，用户: {}", userName);
+                    } else {
+                        if (loginUser == null) {
+                            log.warn("Redis 中未找到用户信息: {}", userName);
+                        } else {
+                            log.warn("Token 验证失败: {}", userName);
+                        }
                     }
                 }
             } catch (io.jsonwebtoken.ExpiredJwtException e) {
-                logger.warn("JWT token is expired: {}");
+                log.warn("JWT token 已过期");
             } catch (io.jsonwebtoken.MalformedJwtException e) {
-                logger.warn("JWT token is malformed: {}");
+                log.warn("JWT token 格式错误: {}", e.getMessage());
             } catch (io.jsonwebtoken.SignatureException e) {
-                logger.warn("JWT signature is invalid: {}");
+                log.warn("JWT 签名无效: {}", e.getMessage());
             } catch (Exception e) {
-                logger.error("Could not set user authentication in security context", e);
+                log.error("认证失败", e);
             }
+        } else {
+            log.debug("请求头中没有 Authorization 或格式不正确");
         }
 
         chain.doFilter(request, response);

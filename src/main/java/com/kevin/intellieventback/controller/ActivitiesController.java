@@ -22,7 +22,7 @@ public class ActivitiesController {
     @GetMapping("/{id}")
     @Operation(summary = "根据ID查询活动")
     public Result<Activities> getById(@Parameter(description = "ID", required = true) @PathVariable String id) {
-        Activities entity = activitiesService.getById(id);
+        Activities entity = activitiesService.getActivityDetail(id);
         return Result.success(entity);
     }
 

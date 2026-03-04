@@ -8,9 +8,13 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.kevin.basecore.modules.security.utils.SecurityUtils;
 import com.kevin.intellieventback.domin.entity.Activities;
 import com.kevin.intellieventback.domin.entity.ActivityUser;
+import com.kevin.intellieventback.domin.entity.Users;
 import com.kevin.intellieventback.mapper.ActivitiesMapper;
 import com.kevin.intellieventback.mapper.ActivityUserMapper;
+import com.kevin.intellieventback.mapper.UsersMapper;
 import com.kevin.intellieventback.service.ActivitiesService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,8 +25,13 @@ import java.util.stream.Collectors;
 @Service
 public class ActivitiesServiceImpl extends ServiceImpl<ActivitiesMapper, Activities> implements ActivitiesService {
 
+    private static final Logger logger = LoggerFactory.getLogger(ActivitiesServiceImpl.class);
+
     @Autowired
     private ActivityUserMapper activityUserMapper;
+
+    @Autowired
+    private UsersMapper usersMapper;
 
     @Override
     public IPage<Activities> pageList(Activities entity) {
@@ -66,30 +75,105 @@ public class ActivitiesServiceImpl extends ServiceImpl<ActivitiesMapper, Activit
         }
         wrapper.orderByDesc(Activities::getDate).orderByDesc(Activities::getCreatedAt);
 
-        return page(page, wrapper);
+        IPage<Activities> resultPage = page(page, wrapper);
+
+        // 填充负责人姓名
+        List<Activities> records = resultPage.getRecords();
+        if (!records.isEmpty()) {
+            // 收集所有负责人ID
+            List<String> responsibleIds = records.stream()
+                    .map(Activities::getResponsible)
+                    .filter(StringUtils::isNotBlank)
+                    .distinct()
+                    .collect(Collectors.toList());
+
+            if (!responsibleIds.isEmpty()) {
+                // 查询用户信息
+                List<Users> users = usersMapper.selectBatchIds(responsibleIds);
+                java.util.Map<String, String> userNameMap = users.stream()
+                        .collect(Collectors.toMap(Users::getId, u -> {
+                            if (StringUtils.isNotBlank(u.getRealName())) {
+                                return u.getRealName();
+                            } else if (StringUtils.isNotBlank(u.getUserName())) {
+                                return u.getUserName();
+                            }
+                            return u.getId();
+                        }, (v1, v2) -> v1));
+
+                // 填充负责人姓名
+                for (Activities activity : records) {
+                    if (StringUtils.isNotBlank(activity.getResponsible())) {
+                        String userName = userNameMap.get(activity.getResponsible());
+                        if (StringUtils.isNotBlank(userName)) {
+                            activity.setResponsibleName(userName);
+                        }
+                    }
+                }
+            }
+        }
+
+        return resultPage;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean saveActivity(Activities entity) {
-        // 保存活动
+        logger.debug("开始保存活动，entity: {}", entity);
+        
         if (entity.getStatus() == null || entity.getStatus().isBlank()) {
             entity.setStatus("待开始");
         }
         boolean result = save(entity);
+        logger.debug("活动保存结果: {}, 活动ID: {}", result, entity.getId());
         
-        if (result) {
-            // 建立用户关联关系 (当前用户作为创建者)
-            String userId = SecurityUtils.getUserId();
-            if (userId != null) {
-                ActivityUser relation = new ActivityUser();
-                relation.setActivityId(entity.getId());
-                relation.setUserId(userId);
-                relation.setRoleType(1); // 1-创建者
-                activityUserMapper.insert(relation);
+        if (result && entity.getId() != null) {
+            String currentUserId = SecurityUtils.getUserId();
+            logger.debug("当前用户ID: {}", currentUserId);
+            
+            if (currentUserId != null) {
+                ActivityUser creatorRelation = new ActivityUser();
+                creatorRelation.setActivityId(entity.getId());
+                creatorRelation.setUserId(currentUserId);
+                creatorRelation.setRoleType(1);
+                logger.debug("准备插入 activity_user (创建者): {}", creatorRelation);
+                activityUserMapper.insert(creatorRelation);
+                logger.debug("activity_user (创建者) 插入成功");
+            } else {
+                logger.warn("用户ID为空，无法创建 activity_user 关联记录 (创建者)");
+            }
+            
+            if (StringUtils.isNotBlank(entity.getResponsible())) {
+                if (!currentUserId.equals(entity.getResponsible())) {
+                    ActivityUser responsibleRelation = new ActivityUser();
+                    responsibleRelation.setActivityId(entity.getId());
+                    responsibleRelation.setUserId(entity.getResponsible());
+                    responsibleRelation.setRoleType(3);
+                    logger.debug("准备插入 activity_user (负责人): {}", responsibleRelation);
+                    activityUserMapper.insert(responsibleRelation);
+                    logger.debug("activity_user (负责人) 插入成功");
+                }
             }
         }
         
         return result;
+    }
+
+    @Override
+    public Activities getActivityDetail(String id) {
+        Activities activity = getById(id);
+        if (activity == null) {
+            return null;
+        }
+
+        if (StringUtils.isNotBlank(activity.getResponsible())) {
+            Users user = usersMapper.selectById(activity.getResponsible());
+            if (user != null) {
+                String userName = StringUtils.isNotBlank(user.getRealName()) ? user.getRealName() :
+                               StringUtils.isNotBlank(user.getUserName()) ? user.getUserName() : user.getId();
+                activity.setResponsibleName(userName);
+            }
+        }
+
+        return activity;
     }
 }
